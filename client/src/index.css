@@ -1,0 +1,163 @@
+@import 'tailwindcss';
+
+/*
+  Agastya design tokens.
+
+  Direction: a sober engineering tool. Ink-navy neutrals, one steel-blue
+  accent for action and selection, a restrained brass used only as a thin
+  "active" rule. IBM Plex Sans for text, IBM Plex Mono for identifiers
+  (usernames, project ids, codes). Every colour is a role token so light and
+  dark are two selected palettes, not an automatic inversion.
+*/
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --canvas: #f3f5f8;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --surface-3: #eef1f5;
+  --line: #dde2ea;
+  --line-strong: #c5cdd8;
+  --ink: #0f1b2d;
+  --ink-2: #44526a;
+  --ink-3: #6b778c;
+  --accent: #1f5f9e;
+  --accent-hover: #194f85;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6eff8;
+  --accent-soft-ink: #164a7c;
+  --brass: #b08a2e;
+  --nav: #0f2238;
+  --nav-2: #16304d;
+  --nav-ink: #c9d4e2;
+  --nav-ink-strong: #ffffff;
+  --ok: #1d7a4e;
+  --ok-soft: #e4f3ea;
+  --warn: #8a5a00;
+  --warn-soft: #fbf0d9;
+  --danger: #b4232a;
+  --danger-hover: #971c22;
+  --danger-soft: #fbe7e8;
+  --focus: #2a78d6;
+  --series-1: #2a78d6;
+  --grid: #e6eaf0;
+  --shadow: 0 1px 2px rgb(15 27 45 / 0.06), 0 1px 3px rgb(15 27 45 / 0.04);
+  --shadow-lg: 0 10px 30px -10px rgb(15 27 45 / 0.25), 0 4px 10px -4px rgb(15 27 45 / 0.12);
+}
+
+.dark {
+  color-scheme: dark;
+  --canvas: #0b1320;
+  --surface: #111c2c;
+  --surface-2: #142132;
+  --surface-3: #1a283b;
+  --line: #233349;
+  --line-strong: #31455f;
+  --ink: #e8edf4;
+  --ink-2: #b2bfd0;
+  --ink-3: #8593a8;
+  --accent: #4b8fd6;
+  --accent-hover: #64a1e0;
+  --accent-ink: #07111d;
+  --accent-soft: #16304d;
+  --accent-soft-ink: #a9cbef;
+  --brass: #d1ad5a;
+  --nav: #08101b;
+  --nav-2: #122236;
+  --nav-ink: #9fb0c6;
+  --nav-ink-strong: #ffffff;
+  --ok: #4cc28a;
+  --ok-soft: #12301f;
+  --warn: #e3b14f;
+  --warn-soft: #33270e;
+  --danger: #f07178;
+  --danger-hover: #f58d92;
+  --danger-soft: #3a171b;
+  --focus: #6aa8ec;
+  --series-1: #3987e5;
+  --grid: #1e2c40;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-brass: var(--brass);
+  --color-nav: var(--nav);
+  --color-nav-2: var(--nav-2);
+  --color-nav-ink: var(--nav-ink);
+  --color-nav-ink-strong: var(--nav-ink-strong);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+  --color-focus: var(--focus);
+
+  --shadow-card: var(--shadow);
+  --shadow-pop: var(--shadow-lg);
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+    font-feature-settings: 'ss02';
+  }
+  /* One visible, consistent keyboard focus ring everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+  dialog::backdrop { background: rgb(8 16 27 / 0.55); backdrop-filter: blur(2px); }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  /* Engineering-drawing grid used on the sign-in panel. */
+  .blueprint {
+    background-color: var(--nav);
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+      linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px);
+    background-size: 96px 96px, 96px 96px, 16px 16px, 16px 16px;
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface-3) 0%, var(--line) 50%, var(--surface-3) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

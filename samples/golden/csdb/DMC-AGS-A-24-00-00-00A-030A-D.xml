@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/descript.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="030" infoCodeVariant="A" itemLocationCode="D"/>
+        <language languageIsoCode="en" countryIsoCode="US"/>
+        <issueInfo issueNumber="001" inWork="00"/>
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate year="2026" month="10" day="01"/>
+        <dmTitle>
+          <techName>PDU-200 power distribution unit</techName>
+          <infoName>Technical data</infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="new">
+      <security securityClassification="01"/>
+      <responsiblePartnerCompany enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </responsiblePartnerCompany>
+      <originator enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </originator>
+      <applic>
+        <displayText>
+          <simplePara>All</simplePara>
+        </displayText>
+      </applic>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <firstVerification verificationType="tabtop"/>
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <description>
+      <levelledPara id="par-240030-01">
+        <title>Technical data</title>
+        <para>The technical data for the PDU-200 is given in <internalRef internalRefId="tab-240030-01" internalRefTargetType="irtt02"/>.</para>
+        <table id="tab-240030-01">
+          <title>PDU-200 technical data</title>
+          <tgroup cols="3">
+            <colspec colname="c1" colwidth="1*"/>
+            <colspec colname="c2" colwidth="1*"/>
+            <colspec colname="c3" colwidth="1*"/>
+            <thead>
+              <row>
+                <entry><para>Characteristic</para></entry>
+                <entry><para>Value</para></entry>
+                <entry><para>Remarks</para></entry>
+              </row>
+            </thead>
+            <tbody>
+              <row><entry><para>Input voltage</para></entry><entry><para>400 V AC, 3 phase, 50 Hz</para></entry><entry><para>Plus or minus 10 percent</para></entry></row>
+              <row><entry><para>Output voltage</para></entry><entry><para>28 V DC</para></entry><entry><para>Regulated to 1 percent</para></entry></row>
+              <row><entry><para>Maximum output current</para></entry><entry><para>20 A</para></entry><entry><para>Shared by both modules</para></entry></row>
+              <row><entry><para>Mass</para></entry><entry><para>14.5 kg</para></entry><entry><para>With both modules installed</para></entry></row>
+              <row><entry><para>Dimensions (H x W x D)</para></entry><entry><para>133 mm x 483 mm x 420 mm</para></entry><entry><para>3U rack mount</para></entry></row>
+              <row><entry><para>Operating temperature</para></entry><entry><para>-20 to +55 degrees C</para></entry><entry><para>Non-condensing</para></entry></row>
+            </tbody>
+          </tgroup>
+        </table>
+      </levelledPara>
+    </description>
+  </content>
+</dmodule>

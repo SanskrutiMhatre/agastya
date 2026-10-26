@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Stencil page xv: demolition to prevent enemy use. Fixed statutory text. -->
+<demolition>
+    <part>
+        <title>General</title>
+        <para indent="none">The demolition procedure outlined below will be used to prevent the enemy from using or salvaging this equipment. DEMOLITION OF THE EQUIPMENT WILL BE DONE ONLY ON ORDER OF THE COMMANDER/ COMMANDING OFFICER.</para>
+    </part>
+    <part>
+        <title>Methods of Destruction</title>
+        <para indent="none">Use any or all the following methods to destroy the equipment.</para>
+        <list type="roman">
+            <item>Smash &#8211; Smash the Crystals, Controls, Semiconductors, Coils, Switches, Transformers and Headsets, use Sledges, Hand-axes, Pickaxes, Hammers crowbars or heavy tools, if applicable.</item>
+            <item>Cut - Cut the Cords, Headsets and Wiring: use axes, hand-axes or hatchets, if applicable.</item>
+            <item>Burn - Burn the Cords, Resistors, Capacitors, Coils, Wiring, and Technical Manuals, use Gasoline, Kerosene, Oil, Flamethrowers or Incendiary, if applicable.</item>
+            <item>Bend - Bend the panels, cabinet and chassis, if applicable.</item>
+            <item>Explosives - If explosives are necessary, use firearms, grenades or TNT, if applicable.</item>
+            <item>Disposal - Bury or scatter the destroyed parts in slits trenches, fox holes or other holes or throw them into streams, if applicable.</item>
+        </list>
+    </part>
+</demolition>

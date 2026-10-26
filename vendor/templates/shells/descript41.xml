@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dmodule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-1/xml_schema_flat/descript.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode assyCode="00" disassyCode="00" disassyCodeVariant="AA" infoCode="000" infoCodeVariant="A" itemLocationCode="A" modelIdentCode="TEST" subSubSystemCode="0" subSystemCode="0" systemCode="00" systemDiffCode="A" />
+        <language countryIsoCode="CA" languageIsoCode="en" />
+        <issueInfo inWork="00" issueNumber="001" />
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate day="26" month="11" year="2024" />
+        <dmTitle>
+          <techName></techName>
+          <infoName></infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="changed">
+      <security securityClassification="01" />
+      <dataRestrictions>
+        <restrictionInstructions>
+          <dataDistribution>There are no specific data
+distribution instructions for this data module.</dataDistribution>
+          <dataHandling>There are no specific handling instructions for this
+data module.</dataHandling>
+          <dataDisclosure>There are no dissemination limitations that apply
+to this data module.</dataDisclosure>
+        </restrictionInstructions>
+        <restrictionInfo>
+          <copyright>
+            <copyrightPara></copyrightPara>
+          </copyright>
+          <policyStatement></policyStatement>
+          <dataConds></dataConds>
+        </restrictionInfo>
+      </dataRestrictions>
+      <responsiblePartnerCompany enterpriseCode="12345"></responsiblePartnerCompany>
+      <originator enterpriseCode="12345"></originator>
+      <applic>
+        <displayText></displayText>
+      </applic>
+      <?Pub Caret -2?>
+      <techStandard>
+        <authorityInfoAndTp>
+          <authorityInfo></authorityInfo>
+          <techPubBase></techPubBase>
+        </authorityInfoAndTp>
+        <authorityExceptions></authorityExceptions>
+        <authorityNotes></authorityNotes>
+      </techStandard>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode assyCode="0301" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D" modelIdentCode="S1000D" subSubSystemCode="0" subSystemCode="1" systemCode="04" systemDiffCode="H" />
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <unverified />
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <description></description>
+  </content>
+</dmodule>

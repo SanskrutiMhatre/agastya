@@ -1,0 +1,42 @@
+[
+  {
+    "id": "cc-001",
+    "code": "IN",
+    "name": "India"
+  },
+  {
+    "id": "cc-002",
+    "code": "GB",
+    "name": "United Kingdom"
+  },
+  {
+    "id": "cc-003",
+    "code": "US",
+    "name": "United States"
+  },
+  {
+    "id": "cc-004",
+    "code": "FR",
+    "name": "France"
+  },
+  {
+    "id": "cc-005",
+    "code": "DE",
+    "name": "Germany"
+  },
+  {
+    "id": "cc-006",
+    "code": "IT",
+    "name": "Italy"
+  },
+  {
+    "id": "cc-007",
+    "code": "SE",
+    "name": "Sweden"
+  },
+  {
+    "id": "cc-008",
+    "code": "CA",
+    "name": "Canada"
+  }
+]

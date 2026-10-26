@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/descript.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="018" infoCodeVariant="A" itemLocationCode="D"/>
+        <language languageIsoCode="en" countryIsoCode="US"/>
+        <issueInfo issueNumber="001" inWork="00"/>
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate year="2026" month="10" day="01"/>
+        <dmTitle>
+          <techName>Radar power system</techName>
+          <infoName>Introduction</infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="new">
+      <security securityClassification="01"/>
+      <responsiblePartnerCompany enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </responsiblePartnerCompany>
+      <originator enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </originator>
+      <applic>
+        <displayText>
+          <simplePara>All</simplePara>
+        </displayText>
+      </applic>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <firstVerification verificationType="tabtop"/>
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <description>
+      <levelledPara id="par-000018-01">
+        <title>Purpose</title>
+        <para>This publication gives the description, technical data and maintenance procedures for the PDU-200 power distribution unit installed in the radar cabinet.</para>
+      </levelledPara>
+      <levelledPara id="par-000018-02">
+        <title>Scope</title>
+        <para>The publication covers organizational level maintenance. It contains:
+          <randomList>
+            <listItem><para>A description of the unit and how it works.</para></listItem>
+            <listItem><para>The technical data for the unit.</para></listItem>
+            <listItem><para>Test, inspection, remove and install procedures for the power supply modules.</para></listItem>
+          </randomList>
+        </para>
+      </levelledPara>
+      <levelledPara id="par-000018-03">
+        <title>How to use this publication</title>
+        <para>Read the general warnings and cautions in
+          <dmRef>
+            <dmRefIdent>
+              <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="012" infoCodeVariant="A" itemLocationCode="D"/>
+            </dmRefIdent>
+          </dmRef> before you do any task. Each procedure starts with the conditions, personnel, equipment and safety requirements for the task.</para>
+      </levelledPara>
+    </description>
+  </content>
+</dmodule>

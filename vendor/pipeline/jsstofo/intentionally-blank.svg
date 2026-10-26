@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The "This page is intentionally left blank." legend for pages FOP inserts
+     via force-page-count="end-on-even" (see pagesetup.xsl: prelim-blank,
+     body-blank, body-landscape-blank, body-a3-landscape-blank). Those pages
+     have no flow content, and per the XSL-FO spec fo:static-content cannot
+     target region-body, so a background-image on the region is the only way
+     to put text there. Sized as a thin centred strip; background-position
+     centres it on the page. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="170mm" height="8mm" viewBox="0 0 170 8">
+  <text x="85" y="5.5" font-family="Helvetica" font-size="4"
+        font-weight="bold" text-anchor="middle" fill="#000000">This page is intentionally left blank.</text>
+</svg>

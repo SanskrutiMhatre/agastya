@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated from the effective config by engine/frontmatter.js. Do not edit. -->
+<cautionsNotes>
+    <item>Follow all standard XXX safety practices.</item>
+    <item>The system is to be serviced by authorised personnel only.</item>
+    <item>Make sure that all switches are on default position before switching ON the incoming supply.</item>
+    <item>Prior to switching ON the system, make sure that input supply voltage is of specified value.</item>
+    <item>Make sure that control wires in panels are secured firmly.</item>
+    <item>Never plug/ unplug connectors, modules while system is ON.</item>
+    <item>In humid condition switch ON the Panel Space Heater before switching ON panels.</item>
+</cautionsNotes>

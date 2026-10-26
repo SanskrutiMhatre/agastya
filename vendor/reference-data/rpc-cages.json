@@ -1,0 +1,14 @@
+[
+  {
+    "id": "rpc-001",
+    "cage": "1671Y",
+    "name": "Larsen & Toubro",
+    "role": "Responsible partner company"
+  },
+  {
+    "id": "rpc-002",
+    "cage": "C6000",
+    "name": "Partner Company Two",
+    "role": "Responsible partner company"
+  }
+]

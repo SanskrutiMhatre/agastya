@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_2-3/xml_schema_flat/descript.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <idstatus>
+    <dmaddres>
+      <dmc>
+        <avee>
+          <modelic>TEST</modelic>
+          <sdc>A</sdc>
+          <chapnum>00</chapnum>
+          <section>0</section>
+          <subsect>0</subsect>
+          <subject>00</subject>
+          <discode>00</discode>
+          <discodev>A</discodev>
+          <incode>000</incode>
+          <incodev>A</incodev>
+          <itemloc>A</itemloc>
+        </avee>
+      </dmc>
+      <dmtitle>
+        <techname></techname>
+        <infoname></infoname>
+      </dmtitle>
+      <issno inwork="00" issno="001" type="new" />
+      <issdate day="26" month="11" year="2024" />
+      <language country="CA" language="en" />
+    </dmaddres>
+    <?Pub Caret -1?>
+    <status>
+      <security class="01" />
+      <rpc>12345</rpc>
+      <orig>12345</orig>
+      <!-- <applic> requires content: an empty one is a schema error the
+           moment the module is created. "All" is the correct default for a
+           module with no applicability restriction. -->
+      <applic>
+        <displaytext>
+          <p>All</p>
+        </displaytext>
+      </applic>
+      <brexref>
+        <refdm>
+          <avee>
+            <modelic>S1000D</modelic>
+            <sdc>H</sdc>
+            <chapnum>04</chapnum>
+            <section>1</section>
+            <subsect>0</subsect>
+            <subject>0301</subject>
+            <discode>00</discode>
+            <discodev>A</discodev>
+            <incode>022</incode>
+            <incodev>A</incodev>
+            <itemloc>D</itemloc>
+          </avee>
+        </refdm>
+      </brexref>
+      <qa>
+        <unverif />
+      </qa>
+    </status>
+  </idstatus>
+  <content>
+    <descript></descript>
+  </content>
+</dmodule>

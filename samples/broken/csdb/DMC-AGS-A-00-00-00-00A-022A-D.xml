@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/brex.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+        <language languageIsoCode="en" countryIsoCode="US"/>
+        <issueInfo issueNumber="001" inWork="00"/>
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate year="2026" month="10" day="01"/>
+        <dmTitle>
+          <techName>Radar power system</techName>
+          <infoName>Business rules exchange</infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="new">
+      <security securityClassification="01"/>
+      <responsiblePartnerCompany enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </responsiblePartnerCompany>
+      <originator enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </originator>
+      <applic>
+        <displayText>
+          <simplePara>All</simplePara>
+        </displayText>
+      </applic>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <firstVerification verificationType="tabtop"/>
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <brex>
+      <contextRules>
+        <structureObjectRuleGroup>
+            <structureObjectRule>
+              <objectPath allowedObjectFlag="2">//dmCode/@modelIdentCode</objectPath>
+              <objectUse>The model identification code of every data module in this project is AGS.</objectUse>
+              <objectValue valueForm="single" valueAllowed="AGS">Agastya sample equipment</objectValue>
+            </structureObjectRule>
+            <structureObjectRule>
+              <objectPath allowedObjectFlag="2">//security/@securityClassification</objectPath>
+              <objectUse>Only the classifications 01 (unclassified) and 02 (restricted) are used in this project.</objectUse>
+              <objectValue valueForm="single" valueAllowed="01">Unclassified</objectValue>
+              <objectValue valueForm="single" valueAllowed="02">Restricted</objectValue>
+            </structureObjectRule>
+            <structureObjectRule>
+              <objectPath allowedObjectFlag="2">//language/@languageIsoCode</objectPath>
+              <objectUse>Data modules are written in English.</objectUse>
+              <objectValue valueForm="single" valueAllowed="en">English</objectValue>
+            </structureObjectRule>
+            <structureObjectRule>
+              <objectPath allowedObjectFlag="0">//emphasis[@emphasisType='em03']</objectPath>
+              <objectUse>Underline emphasis (em03) is not used. Use bold emphasis instead.</objectUse>
+
+            </structureObjectRule>
+            <structureObjectRule>
+              <objectPath allowedObjectFlag="0">//para/randomList/listItem/para/randomList</objectPath>
+              <objectUse>Lists are not nested more than one level deep.</objectUse>
+
+            </structureObjectRule>
+        </structureObjectRuleGroup>
+      </contextRules>
+    </brex>
+  </content>
+</dmodule>

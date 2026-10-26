@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dmodule [
+<!NOTATION png SYSTEM "png">
+<!ENTITY ICN-AGS-A-240000-A-0AGS1-00001-A-01-1 SYSTEM "ICN-AGS-A-240000-A-0AGS1-00001-A-01-1.png" NDATA png>
+]>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/descript.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="040" infoCodeVariant="A" itemLocationCode="D"/>
+        <language languageIsoCode="en" countryIsoCode="US"/>
+        <issueInfo issueNumber="001" inWork="00"/>
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate year="2026" month="10" day="01"/>
+        <dmTitle>
+          <techName>PDU-200 power distribution unit</techName>
+          <infoName>Description of how it is made and how it works</infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="new">
+      <security securityClassification="01"/>
+      <responsiblePartnerCompany enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </responsiblePartnerCompany>
+      <originator enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </originator>
+      <applic>
+        <displayText>
+          <simplePara>All</simplePara>
+        </displayText>
+      </applic>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <firstVerification verificationType="tabtop"/>
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <description>
+      <levelledPara id="par-240040-01">
+        <title>General</title>
+        <para>The PDU-200 power distribution unit receives three-phase mains power and supplies regulated power to the radar cabinet. It contains a mains filter, two hot-swappable power supply modules and an output distribution board. Refer to <internalRef internalRefId="fig-240040-01" internalRefTargetType="irtt01"/> for the block diagram.</para>
+        <para>The technical data for the unit is given in
+          <dmRef>
+            <dmRefIdent>
+              <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="030" infoCodeVariant="A" itemLocationCode="D"/>
+            </dmRefIdent>
+          </dmRef>.</para>
+      </levelledPara>
+      <levelledPara id="par-240040-02">
+        <title>Function</title>
+        <para>Mains power enters through the input connector J1 and passes through the mains filter. The filtered supply feeds both power supply modules in parallel. Each module can carry the full load, so the unit keeps working if one module fails.</para>
+        <figure id="fig-240040-01">
+          <title>PDU-200 block diagram</title>
+          <graphic infoEntityIdent="ICN-AGS-A-240000-A-0AGS1-00001-A-01-1" reproductionWidth="150 mm"/>
+        </figure>
+        <para>The output distribution board divides the 28 V DC output into three protected circuits. The function of each circuit is given in <internalRef internalRefId="tab-240040-01" internalRefTargetType="irtt02"/>.</para>
+        <table id="tab-240040-01">
+          <title>Output circuits</title>
+          <tgroup cols="3">
+            <colspec colname="c1" colwidth="25mm"/>
+            <colspec colname="c2" colwidth="1*"/>
+            <colspec colname="c3" colwidth="30mm"/>
+            <thead>
+              <row>
+                <entry><para>Circuit</para></entry>
+                <entry><para>Supplies</para></entry>
+                <entry><para>Fuse rating</para></entry>
+              </row>
+            </thead>
+            <tbody>
+              <row>
+                <entry><para>OUT 1</para></entry>
+                <entry><para>Transmitter control unit</para></entry>
+                <entry><para>10 A</para></entry>
+              </row>
+              <row>
+                <entry><para>OUT 2</para></entry>
+                <entry><para>Receiver and signal processor</para></entry>
+                <entry><para>6 A</para></entry>
+              </row>
+              <row>
+                <entry><para>OUT 3</para></entry>
+                <entry><para>Cooling fans and cabinet lighting</para></entry>
+                <entry><para>4 A</para></entry>
+              </row>
+            </tbody>
+          </tgroup>
+        </table>
+      </levelledPara>
+      <levelledPara id="par-240040-03">
+        <title>Indicators</title>
+        <para>The front panel has one green POWER indicator and one amber indicator for each power supply module. An amber indicator that comes on shows that its module has failed or has been removed.</para>
+      </levelledPara>
+    </description>
+  </content>
+</dmodule>

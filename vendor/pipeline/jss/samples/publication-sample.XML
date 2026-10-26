@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sample S1000D publication for the JSS pipeline.
+
+  A <publication> wrapper holding one publication module (pm) and the data
+  modules it references. The PM defines the book structure: each top-level
+  pmEntry becomes a JSS chapter, and each dmRef resolves against the dmodules
+  below by full DM code.
+
+  This mirrors how the S1000D pipeline resolves a PM ($all.dmodules = //dmodule),
+  so the same source file drives either pipeline.
+-->
+<publication>
+
+    <pm>
+        <identAndStatusSection>
+            <pmAddress>
+                <pmIdent>
+                    <pmCode modelIdentCode="LTDEF" pmIssuer="12345" pmNumber="00001" pmVolume="00"/>
+                    <language languageIsoCode="en" countryIsoCode="IN"/>
+                    <issueInfo issueNumber="001" inWork="00"/>
+                </pmIdent>
+                <pmAddressItems>
+                    <issueDate year="2026" month="03" day="15"/>
+                    <pmTitle>User Handbook</pmTitle>
+                </pmAddressItems>
+            </pmAddress>
+        </identAndStatusSection>
+        <content>
+            <pmEntry>
+                <pmEntryTitle>Leading Particulars and General Data</pmEntryTitle>
+                <dmRef>
+                    <dmRefIdent>
+                        <dmCode modelIdentCode="LTDEF" systemDiffCode="A" systemCode="00"
+                                subSystemCode="0" subSubSystemCode="0" assyCode="00"
+                                disassyCode="00" disassyCodeVariant="A"
+                                infoCode="040" infoCodeVariant="A" itemLocationCode="A"/>
+                    </dmRefIdent>
+                </dmRef>
+            </pmEntry>
+            <pmEntry>
+                <pmEntryTitle>Operation</pmEntryTitle>
+                <dmRef>
+                    <dmRefIdent>
+                        <dmCode modelIdentCode="LTDEF" systemDiffCode="A" systemCode="00"
+                                subSystemCode="0" subSubSystemCode="0" assyCode="00"
+                                disassyCode="00" disassyCodeVariant="A"
+                                infoCode="500" infoCodeVariant="A" itemLocationCode="A"/>
+                    </dmRefIdent>
+                </dmRef>
+            </pmEntry>
+            <pmEntry>
+                <pmEntryTitle>Fault Isolation</pmEntryTitle>
+                <dmRef>
+                    <dmRefIdent>
+                        <dmCode modelIdentCode="LTDEF" systemDiffCode="A" systemCode="00"
+                                subSystemCode="0" subSubSystemCode="0" assyCode="00"
+                                disassyCode="00" disassyCodeVariant="A"
+                                infoCode="420" infoCodeVariant="A" itemLocationCode="A"/>
+                    </dmRefIdent>
+                </dmRef>
+            </pmEntry>
+            <pmEntry>
+                <pmEntryTitle>Illustrated Parts Data</pmEntryTitle>
+                <dmRef>
+                    <dmRefIdent>
+                        <dmCode modelIdentCode="LTDEF" systemDiffCode="A" systemCode="00"
+                                subSystemCode="0" subSubSystemCode="0" assyCode="00"
+                                disassyCode="00" disassyCodeVariant="A"
+                                infoCode="941" infoCodeVariant="A" itemLocationCode="A"/>
+                    </dmRefIdent>
+                </dmRef>
+            </pmEntry>
+        </content>
+    </pm>
+
+    <!-- ============ DESCRIPTIVE (infoCode 040) ============ -->
+    <dmodule xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/descript.xsd"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <identAndStatusSection>
+            <dmAddress>
+                <dmIdent>
+                    <dmCode modelIdentCode="LTDEF" systemDiffCode="A" systemCode="00"
+                            subSystemCode="0" subSubSystemCode="0" assyCode="00"
+                            disassyCode="00" disassyCodeVariant="A"
+                            infoCode="040" infoCodeVariant="A" itemLocationCode="A"/>
+                    <language languageIsoCode="en" countryIsoCode="IN"/>
+                    <issueInfo issueNumber="001" inWork="00"/>
+                </dmIdent>
+                <dmAddressItems>
+                    <issueDate year="2026" month="03" day="15"/>
+                    <dmTitle>
+                        <techName>Power Distribution System</techName>
+                        <infoName>Description</infoName>
+                    </dmTitle>
+                </dmAddressItems>
+            </dmAddress>
+            <dmStatus issueType="new">
+                <security securityClassification="02"/>
+                <responsiblePartnerCompany><enterpriseName>L&amp;T Defence</enterpriseName></responsiblePartnerCompany>
+            </dmStatus>
+        </identAndStatusSection>
+        <content>
+            <description>
+                <levelledPara>
+                    <title>Purpose</title>
+                    <para>The power distribution system supplies regulated power to all
+                        <acronym><acronymTerm>LRU</acronymTerm><acronymDefinition>Line Replaceable Unit</acronymDefinition></acronym>
+                        assemblies of the equipment.</para>
+                </levelledPara>
+                <levelledPara>
+                    <title>Features</title>
+                    <para>The main features of the system are as follows:</para>
+                    <randomList>
+                        <listItem><para>Dual redundant supply paths</para></listItem>
+                        <listItem><para>Automatic changeover on supply failure</para></listItem>
+                        <listItem><para>Front panel status indication</para></listItem>
+                    </randomList>
+                </levelledPara>
+                <levelledPara>
+                    <title>Technical Specifications</title>
+                    <para>The technical specifications are given in the table below.</para>
+                    <table>
+                        <title>Technical Specifications</title>
+                        <tgroup cols="3">
+                            <colspec colname="c1" colwidth="20mm"/>
+                            <colspec colname="c2" colwidth="1*"/>
+                            <colspec colname="c3" colwidth="1*"/>
+                            <thead>
+                                <row>
+                                    <entry><para>Sl. No.</para></entry>
+                                    <entry><para>Attribute</para></entry>
+                                    <entry><para>Specification</para></entry>
+                                </row>
+                            </thead>
+                            <tbody>
+                                <row>
+                                    <entry><para>(a)</para></entry>
+                                    <entry><para>Input voltage</para></entry>
+                                    <entry><para>230 V AC, 50 Hz</para></entry>
+                                </row>
+                                <row>
+                                    <entry><para>(b)</para></entry>
+                                    <entry><para>Output voltage</para></entry>
+                                    <entry><para>28 V DC</para></entry>
+                                </row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                    <note><notePara>Values are nominal at rated load.</notePara></note>
+                </levelledPara>
+            </description>
+        </content>
+    </dmodule>
+
+    <!-- ============ PROCEDURAL (infoCode 500) ============ -->
+    <dmodule xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/proced.xsd"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <identAndStatusSection>
+            <dmAddress>
+                <dmIdent>
+                    <dmCode modelIdentCode="LTDEF" systemDiffCode="A" systemCode="00"
+                            subSystemCode="0" subSubSystemCode="0" assyCode="00"
+                            disassyCode="00" disassyCodeVariant="A"
+                            infoCode="500" infoCodeVariant="A" itemLocationCode="A"/>
+                    <issueInfo issueNumber="001" inWork="00"/>
+                </dmIdent>
+                <dmAddressItems>
+                    <issueDate year="2026" month="03" day="15"/>
+                    <dmTitle>
+                        <techName>Power Distribution System</techName>
+                        <infoName>Operating Procedure</infoName>
+                    </dmTitle>
+                </dmAddressItems>
+            </dmAddress>
+            <dmStatus issueType="new">
+                <security securityClassification="02"/>
+            </dmStatus>
+        </identAndStatusSection>
+        <content>
+            <procedure>
+                <preliminaryRqmts>
+                    <reqCondGroup>
+                        <reqCondNoRef><reqCond>System isolated and made safe</reqCond></reqCondNoRef>
+                        <reqCondNoRef><reqCond>Covers refitted and secured</reqCond></reqCondNoRef>
+                    </reqCondGroup>
+                    <reqSafety>
+                        <safetyRqmts>
+                            <warning><warningAndCautionPara>High voltage present. Isolate before servicing.</warningAndCautionPara></warning>
+                            <caution><warningAndCautionPara>Do not exceed the rated load.</warningAndCautionPara></caution>
+                        </safetyRqmts>
+                    </reqSafety>
+                </preliminaryRqmts>
+                <mainProcedure>
+                    <proceduralStep>
+                        <title>Switching On</title>
+                        <para>Carry out the following steps in order:</para>
+                        <proceduralStep><para>Set the mains isolator to ON.</para></proceduralStep>
+                        <proceduralStep><para>Verify the green POWER indicator illuminates.</para></proceduralStep>
+                        <proceduralStep><para>Confirm the output voltage reads 28 V DC.</para></proceduralStep>
+                    </proceduralStep>
+                    <proceduralStep>
+                        <title>Switching Off</title>
+                        <proceduralStep><para>Set all load switches to OFF.</para></proceduralStep>
+                        <proceduralStep><para>Set the mains isolator to OFF.</para></proceduralStep>
+                    </proceduralStep>
+                </mainProcedure>
+                <closeRqmts>
+                    <reqCondGroup>
+                        <reqCondNoRef><reqCond>Work area cleared of tools</reqCond></reqCondNoRef>
+                    </reqCondGroup>
+                </closeRqmts>
+            </procedure>
+        </content>
+    </dmodule>
+
+    <!-- ============ FAULT ISOLATION (infoCode 420) ============ -->
+    <dmodule xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/fault.xsd"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <identAndStatusSection>
+            <dmAddress>
+                <dmIdent>
+                    <dmCode modelIdentCode="LTDEF" systemDiffCode="A" systemCode="00"
+                            subSystemCode="0" subSubSystemCode="0" assyCode="00"
+                            disassyCode="00" disassyCodeVariant="A"
+                            infoCode="420" infoCodeVariant="A" itemLocationCode="A"/>
+                    <issueInfo issueNumber="001" inWork="00"/>
+                </dmIdent>
+                <dmAddressItems>
+                    <issueDate year="2026" month="03" day="15"/>
+                    <dmTitle>
+                        <techName>Power Distribution System</techName>
+                        <infoName>Fault Isolation</infoName>
+                    </dmTitle>
+                </dmAddressItems>
+            </dmAddress>
+            <dmStatus issueType="new">
+                <security securityClassification="02"/>
+            </dmStatus>
+        </identAndStatusSection>
+        <content>
+            <faultIsolation>
+                <isolationProcedure>
+                    <isolationMainProcedure>
+                        <isolationStep>
+                            <title>POWER indicator does not illuminate</title>
+                            <isolationStepQuestion><para>Is the mains supply present at the input terminals?</para></isolationStepQuestion>
+                            <isolationStepAnswer>
+                                <yesAnswer><para>Replace the power supply module.</para></yesAnswer>
+                                <noAnswer><para>Restore the mains supply and repeat the check.</para></noAnswer>
+                            </isolationStepAnswer>
+                        </isolationStep>
+                        <isolationStep>
+                            <title>Output voltage out of tolerance</title>
+                            <isolationStepQuestion><para>Does the output recover when the load is removed?</para></isolationStepQuestion>
+                            <isolationStepAnswer>
+                                <yesAnswer><para>Investigate the connected load for a short circuit.</para></yesAnswer>
+                                <noAnswer><para>Replace the regulator assembly.</para></noAnswer>
+                            </isolationStepAnswer>
+                        </isolationStep>
+                    </isolationMainProcedure>
+                </isolationProcedure>
+            </faultIsolation>
+        </content>
+    </dmodule>
+
+    <!-- ============ ILLUSTRATED PARTS DATA (infoCode 941) ============ -->
+    <dmodule xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/ipd.xsd"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <identAndStatusSection>
+            <dmAddress>
+                <dmIdent>
+                    <dmCode modelIdentCode="LTDEF" systemDiffCode="A" systemCode="00"
+                            subSystemCode="0" subSubSystemCode="0" assyCode="00"
+                            disassyCode="00" disassyCodeVariant="A"
+                            infoCode="941" infoCodeVariant="A" itemLocationCode="A"/>
+                    <issueInfo issueNumber="001" inWork="00"/>
+                </dmIdent>
+                <dmAddressItems>
+                    <issueDate year="2026" month="03" day="15"/>
+                    <dmTitle>
+                        <techName>Power Distribution System</techName>
+                        <infoName>Illustrated Parts Data</infoName>
+                    </dmTitle>
+                </dmAddressItems>
+            </dmAddress>
+            <dmStatus issueType="new">
+                <security securityClassification="02"/>
+            </dmStatus>
+        </identAndStatusSection>
+        <content>
+            <illustratedPartsCatalog>
+                <catalogSeqNumber figureNumber="01" item="001" indenture="1">
+                    <itemSeqNumber>
+                        <partSegment>
+                            <itemIdentData>
+                                <manufacturerCode>K1234</manufacturerCode>
+                                <partNumber>PDU-ASSY-001</partNumber>
+                            </itemIdentData>
+                            <descrForPart>Power Distribution Unit Assembly</descrForPart>
+                            <quantityPerNextHigherAssy>1</quantityPerNextHigherAssy>
+                            <unitOfIssue>EA</unitOfIssue>
+                        </partSegment>
+                    </itemSeqNumber>
+                </catalogSeqNumber>
+                <catalogSeqNumber figureNumber="01" item="002" indenture="2">
+                    <itemSeqNumber>
+                        <partSegment>
+                            <itemIdentData>
+                                <manufacturerCode>K1234</manufacturerCode>
+                                <partNumber>PDU-REG-010</partNumber>
+                            </itemIdentData>
+                            <descrForPart>Regulator Module</descrForPart>
+                            <quantityPerNextHigherAssy>2</quantityPerNextHigherAssy>
+                            <unitOfIssue>EA</unitOfIssue>
+                        </partSegment>
+                    </itemSeqNumber>
+                </catalogSeqNumber>
+            </illustratedPartsCatalog>
+        </content>
+    </dmodule>
+
+</publication>

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "name": "PDU-200 Power Distribution Unit (golden sample)",
+  "type": "S1000D",
+  "pipeline": "s1000dtojss",
+  "templateRef": "agastya",
+  "input": {
+    "pm": "publication.xml",
+    "csdbDir": "csdb",
+    "mediaDir": "Media"
+  },
+  "publication": {
+    "bookName": "Maintenance Manual",
+    "systemName": "PDU-200 Power Distribution Unit",
+    "publicationNo": "AGS-MM-0001",
+    "inbrNo": "",
+    "nsn": "",
+    "contractNo": "",
+    "projectCode": "AGS",
+    "ltDocumentNo": "",
+    "month": "October",
+    "year": "2026",
+    "securityClassification": "UNCLASSIFIED"
+  },
+  "frontMatter": {
+    "foreword": {
+      "text": "Every care has been taken in the preparation of this document. The technical content has been authenticated. However, the reader is requested to tell Agastya Sample Works by e-mail or letter if any error is observed or there are any suggestions to improve this document.",
+      "email": "publications@agastya.example",
+      "postalAddress": [
+        "Technical Publications,",
+        "Agastya Sample Works."
+      ],
+      "telephone": [],
+      "fax": []
+    },
+    "titlePage": {
+      "documentType": "MAINTENANCE MANUAL"
+    },
+    "titlePageJoint": {
+      "documentType": "Maintenance Manual"
+    },
+    "proprietary": {
+      "applicability": "THIS DOCUMENT IS APPLICABLE TO THE PDU-200 POWER DISTRIBUTION UNIT"
+    }
+  },
+  "overrides": {
+    "layout": {}
+  }
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ic-001",
+    "code": "000",
+    "name": "Function, data for the product"
+  },
+  {
+    "id": "ic-002",
+    "code": "018",
+    "name": "Introduction"
+  },
+  {
+    "id": "ic-003",
+    "code": "040",
+    "name": "Description"
+  },
+  {
+    "id": "ic-004",
+    "code": "041",
+    "name": "Description of how it works"
+  },
+  {
+    "id": "ic-005",
+    "code": "130",
+    "name": "Servicing"
+  },
+  {
+    "id": "ic-006",
+    "code": "200",
+    "name": "Servicing procedures"
+  },
+  {
+    "id": "ic-007",
+    "code": "520",
+    "name": "Remove procedures"
+  },
+  {
+    "id": "ic-008",
+    "code": "720",
+    "name": "Install procedures"
+  },
+  {
+    "id": "ic-009",
+    "code": "941",
+    "name": "Illustrated parts data"
+  }
+]

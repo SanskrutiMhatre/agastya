@@ -1,0 +1,22 @@
+[
+  {
+    "id": "sns-001",
+    "code": "00",
+    "name": "General"
+  },
+  {
+    "id": "sns-002",
+    "code": "05",
+    "name": "Time limits and maintenance checks"
+  },
+  {
+    "id": "sns-003",
+    "code": "09",
+    "name": "Towing and taxiing"
+  },
+  {
+    "id": "sns-004",
+    "code": "20",
+    "name": "Standard practices"
+  }
+]

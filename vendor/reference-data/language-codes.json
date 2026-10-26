@@ -1,0 +1,37 @@
+[
+  {
+    "id": "lang-001",
+    "code": "en",
+    "name": "English"
+  },
+  {
+    "id": "lang-002",
+    "code": "fr",
+    "name": "French"
+  },
+  {
+    "id": "lang-003",
+    "code": "de",
+    "name": "German"
+  },
+  {
+    "id": "lang-004",
+    "code": "it",
+    "name": "Italian"
+  },
+  {
+    "id": "lang-005",
+    "code": "es",
+    "name": "Spanish"
+  },
+  {
+    "id": "lang-006",
+    "code": "sv",
+    "name": "Swedish"
+  },
+  {
+    "id": "lang-007",
+    "code": "hi",
+    "name": "Hindi"
+  }
+]

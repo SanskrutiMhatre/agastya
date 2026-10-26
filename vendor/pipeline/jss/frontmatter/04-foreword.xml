@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated from the effective config by engine/frontmatter.js. Do not edit. -->
+<foreword>
+    <para>Every care has been taken in the preparation of this document. The technical content has been authenticated. However, the reader is requested to communicate by E-mail/ Letter/ Telephone/ Fax to Larsen &amp; Toubro, if any error is observed or there are any suggestions to improve this document.</para>
+    <deflist>
+        <defitem>
+            <term>E-mail Address</term>
+            <def>defence@larsentoubro.com</def>
+        </defitem>
+        <defitem>
+            <term>Postal Address</term>
+            <def>
+                <line>Head, Documentation &amp; Training,</line>
+                <line>L&amp;T Defence, Larsen &amp; Toubro.</line>
+                <line>G Building, Gate No. 1,</line>
+                <line>Saki Vihar Road, Powai.</line>
+                <line>Mumbai - 400 072.</line>
+            </def>
+        </defitem>
+        <defitem>
+            <term>Telephone No.</term>
+            <def>022 - 6705 3965</def>
+        </defitem>
+        <defitem>
+            <term>Fax No.</term>
+            <def>
+                <line>022 - 6705 3234</line>
+                <line>022 - 6705 5914</line>
+            </def>
+        </defitem>
+    </deflist>
+</foreword>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Stencil page xi: first aid for electric shock. Fixed statutory text.
+
+     The artwork is a SINGLE tall illustration containing all four figures with
+     their "Figure. 1 .. 4" labels already drawn in, so it is placed once
+     alongside the whole step list rather than once per step. -->
+<firstAid>
+    <figure src="Media/stamp1.png"/>
+    <step>
+        <para>SWITCH OFF. If this is not possible, PROTECT YOURSELF with dry insulating material and pull the victim clear of the conductor. DO NOT TOUCH THE VICTIM WITH YOUR BARE HANDS until he is clear of the conductor, but DO NOT WASTE TIME.</para>
+    </step>
+    <step>
+        <para>(a) Place the victim in the supine position.</para>
+        <para>(b) Keep the air passages clear by turning the head to one side, opening the patient's mouth and clearing it of water, saline, mucus or blood, a lot of which might have accumulated in the back of the throat. (Figure 1)</para>
+    </step>
+    <step>
+        <para>If the jaw is rigid try to force the mouth open by pressure on the gum behind the last molar tooth of the lower jaw. When the upper air passages are thus cleared, tilt the head backward and force the jaw forward from the angles of the jaw in front of the ears. This would prevent mechanical obstructions to the upper air passages. (Figure 2-3)</para>
+    </step>
+    <step>
+        <para>(a) Then hold the chin up and forward with one hand and pinch the nostrils of the victim with the other. (Figure 4)</para>
+        <para>(b) Take a very deep breath and apply your mouth to that of the victim and blow into his mouth, until the chest of the victim moves up indicating filling of the lungs. (NEVER ALLOW THE CHIN TO SAG). (Figure 4)</para>
+    </step>
+    <step>
+        <para>When the chest has moved up, withdraw your mouth and allow the chest to slink back. REPEAT this process every three to four seconds until the victim begins to breathe again or until he is taken over by a medical attendant. This method can be continued in an ambulance during transit of the patient from the site of accident to the nearest medical centre.</para>
+    </step>
+    <closing>HAVE SOMEONE ELSE AND SEND FOR A DOCTOR. KEEP PATIENT WARM AND LOOSEN HIS CLOTHING. DO NOT GIVE LIQUIDS UNTIL THE PATIENT IS CONSCIOUS.</closing>
+</firstAid>

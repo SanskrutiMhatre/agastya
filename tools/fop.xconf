@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FOP configuration for the publishing pipeline.
+
+  Its only job is to register the bundled DejaVu Sans family. Without it FOP
+  runs on the base-14 PDF fonts alone, which are WinAnsi-encoded: any character
+  outside that set is rendered as "#" with a "Glyph not available" warning that
+  nothing surfaces to the user. That silently mangled ordinary technical
+  content, e.g. U+01A5 LATIN SMALL LETTER P WITH HOOK in <para>.
+
+  DejaVu Sans is named AFTER Helvetica in the stylesheets' font stack, so it is
+  consulted only for characters Helvetica cannot render. Text that the base-14
+  fonts do cover keeps its existing metrics and appearance, and previously
+  published documents repaginate identically.
+
+  Both the fop launcher (cold path) and FopServer (warm daemon) load this file,
+  so a document renders the same whichever one served it.
+
+  font-base is relative to this file, and this file sits at the root of the
+  tools directory on every platform: server/tools in a Windows checkout,
+  server/tools-linux on Linux, and resources/tools in a packaged build.
+-->
+<fop version="1.0">
+  <font-base>fonts/</font-base>
+  <renderers>
+    <renderer mime="application/pdf">
+      <fonts>
+        <font embed-url="DejaVuSans.ttf">
+          <font-triplet name="DejaVu Sans" style="normal" weight="normal"/>
+        </font>
+        <font embed-url="DejaVuSans-Bold.ttf">
+          <font-triplet name="DejaVu Sans" style="normal" weight="bold"/>
+        </font>
+        <font embed-url="DejaVuSans-Oblique.ttf">
+          <font-triplet name="DejaVu Sans" style="italic" weight="normal"/>
+        </font>
+        <font embed-url="DejaVuSans-BoldOblique.ttf">
+          <font-triplet name="DejaVu Sans" style="italic" weight="bold"/>
+        </font>
+      </fonts>
+    </renderer>
+  </renderers>
+</fop>

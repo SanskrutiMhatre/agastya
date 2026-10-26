@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/proced.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="320" infoCodeVariant="A" itemLocationCode="D"/>
+        <language languageIsoCode="en" countryIsoCode="US"/>
+        <issueInfo issueNumber="001" inWork="00"/>
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate year="2026" month="10" day="01"/>
+        <dmTitle>
+          <techName>PDU-200 power distribution unit</techName>
+          <infoName>Operational test</infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="new">
+      <security securityClassification="01"/>
+      <responsiblePartnerCompany enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </responsiblePartnerCompany>
+      <originator enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </originator>
+      <applic>
+        <displayText>
+          <simplePara>All</simplePara>
+        </displayText>
+      </applic>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <firstVerification verificationType="tabtop"/>
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <procedure>
+      <preliminaryRqmts>
+        <reqCondGroup>
+          <reqCondNoRef>
+            <reqCond>The PDU-200 is installed in the radar cabinet.</reqCond>
+          </reqCondNoRef>
+          <reqCondNoRef>
+            <reqCond>Both power supply modules are installed.</reqCond>
+          </reqCondNoRef>
+        </reqCondGroup>
+        <reqPersons>
+          <person man="A">
+            <personCategory personCategoryCode="Maintainer"/>
+            <trade>Electrical technician</trade>
+            <estimatedTime unitOfMeasure="min">20</estimatedTime>
+          </person>
+        </reqPersons>
+        <reqSupportEquips>
+          <supportEquipDescrGroup>
+            <supportEquipDescr id="seq-240320-01">
+              <name>Digital multimeter</name>
+              <identNumber>
+                <manufacturerCode>0AGS1</manufacturerCode>
+                <partAndSerialNumber>
+                  <partNumber>DMM-87</partNumber>
+                </partAndSerialNumber>
+              </identNumber>
+              <reqQuantity>1</reqQuantity>
+            </supportEquipDescr>
+          </supportEquipDescrGroup>
+        </reqSupportEquips>
+        <reqSupplies>
+          <noSupplies/>
+        </reqSupplies>
+        <reqSpares>
+          <noSpares/>
+        </reqSpares>
+        <reqSafety>
+          <safetyRqmts>
+            <warning>
+              <warningAndCautionPara>Dangerous voltages are present in the PDU-200 when mains power is connected. Make sure the main circuit breaker is open and tagged before you start. If you do not, you can be killed or seriously injured.</warningAndCautionPara>
+            </warning>
+          </safetyRqmts>
+        </reqSafety>
+      </preliminaryRqmts>
+      <mainProcedure>
+        <proceduralStep id="stp-240320-01">
+          <para>Close the main circuit breaker.</para>
+        </proceduralStep>
+        <proceduralStep id="stp-240320-02">
+          <para>Make sure the green POWER indicator comes on and both amber indicators stay off.</para>
+        </proceduralStep>
+        <proceduralStep id="stp-240320-03">
+          <para>Measure the voltage at test points TP1 and TP2 with the digital multimeter.</para>
+          <proceduralStep id="stp-240320-04">
+            <para>Make sure the voltage is between 27.7 V DC and 28.3 V DC.</para>
+          </proceduralStep>
+          <proceduralStep id="stp-240320-05">
+            <para>If the voltage is out of limits, replace the power supply module. Refer to
+              <dmRef>
+            <dmRefIdent>
+              <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="1" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="520" infoCodeVariant="A" itemLocationCode="D"/>
+            </dmRefIdent>
+          </dmRef>.</para>
+          </proceduralStep>
+        </proceduralStep>
+      </mainProcedure>
+      <closeRqmts>
+        <reqCondGroup>
+          <reqCondNoRef>
+            <reqCond>Record the measured voltage in the maintenance log.</reqCond>
+          </reqCondNoRef>
+        </reqCondGroup>
+      </closeRqmts>
+    </procedure>
+  </content>
+</dmodule>

@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "id": "default",
+  "name": "Default JSS House Style",
+  "description": "Baseline house style. Values mirror the current jsstofo/s1000dtojss defaults exactly, so a book built from this template is identical to today's output.",
+  "layout": {
+    "page": {
+      "width": "210mm",
+      "height": "297mm",
+      "marginTop": "12mm",
+      "marginBottom": "12mm",
+      "marginInner": "25mm",
+      "marginOuter": "18mm",
+      "bodyMarginTop": "17mm",
+      "bodyMarginBottom": "14mm",
+      "headerExtent": "16mm",
+      "footerExtent": "14mm"
+    },
+    "fonts": {
+      "family": "Helvetica",
+      "bodySize": "11pt",
+      "lineHeight": 1.35,
+      "headerFooterSize": "9pt",
+      "tableSize": "10pt"
+    },
+    "chapterTitleSize": "16pt",
+    "headings": [
+      {
+        "level": 1,
+        "size": "12pt",
+        "spaceBefore": "5mm",
+        "spaceAfter": "2mm",
+        "indentLeft": "0mm",
+        "titleGap": 15,
+        "uppercase": true
+      },
+      {
+        "level": 2,
+        "size": "11pt",
+        "spaceBefore": "5mm",
+        "spaceAfter": "2mm",
+        "indentLeft": "15mm",
+        "titleGap": 20,
+        "uppercase": false
+      },
+      {
+        "level": 3,
+        "size": "11pt",
+        "spaceBefore": "5mm",
+        "spaceAfter": "2mm",
+        "indentLeft": "15mm",
+        "titleGap": 25,
+        "uppercase": false
+      },
+      {
+        "level": 4,
+        "size": "11pt",
+        "spaceBefore": "5mm",
+        "spaceAfter": "2mm",
+        "indentLeft": "15mm",
+        "titleGap": 30,
+        "uppercase": false
+      }
+    ],
+    "paragraph": {
+      "spaceAfter": "3mm",
+      "firstLineIndent": "8mm"
+    },
+    "figures": {
+      "captionGap": "2mm",
+      "caps": {
+        "portrait": {
+          "w": 167,
+          "h": 235
+        },
+        "landscape": {
+          "w": 254,
+          "h": 148
+        },
+        "a3landscape": {
+          "w": 377,
+          "h": 235
+        }
+      }
+    },
+    "toc": {
+      "sectionDepth": 1
+    },
+    "lists": {
+      "gapAlpha": 8,
+      "gapRoman": 10,
+      "gapBullet": 5,
+      "indent": 0,
+      "itemSpace": 1.5
+    },
+    "blankVersos": true,
+    "header": {
+      "publicationText": "160KVA"
+    },
+    "notices": {
+      "style": "boxed"
+    }
+  },
+  "branding": {
+    "emblem": "Media/Satya.png",
+    "publishers": [
+      {
+        "name": "L&T Defence,",
+        "addressLines": [
+          "LARSEN & TOUBRO LIMITED"
+        ],
+        "logo": "Media/JACKSON.png"
+      },
+      {
+        "name": "SATYA",
+        "addressLines": [
+          "SATYAA"
+        ],
+        "logo": "Media/Satya.png"
+      }
+    ]
+  },
+  "frontMatterDefaults": {
+    "titlePageJoint": {
+      "documentType": "Technical Description",
+      "disclosureNotice": "THE INFORMATION GIVEN IN THIS DOCUMENT IS NOT TO BE PUBLISHED OR COMMUNICATED EITHER DIRECTLY OR INDIRECTLY TO THE PRESS OR TO ANY PERSON NOT HOLDING AN OFFICIAL POSITION IN THE SERVICE OF GOVERNMENT OF INDIA.",
+      "repairNotice": "THIS MANUAL DOES NOT CONSTITUTE AUTHORITY FOR REPAIRS OR REPLACEMENT OF COMPONENTS BY USERS. REPAIRS BY DIFFERENT AGENCIES WILL ONLY BE CARRIED OUT AS LAID DOWN IN PERMISSIBLE REPAIR SCHEDULES PUBLISHED AS EMERs OR EQUIVALENT FROM TIME TO TIME."
+    },
+    "titlePage": {
+      "documentType": "USER HANDBOOK",
+      "disclosureNotice": "THE INFORMATION GIVEN IN THIS DOCUMENT IS NOT TO BE PUBLISHED OR COMMUNICATED, EITHER DIRECTLY OR INDIRECTLY TO THE PRESS OR TO ANY PERSON NOT HOLDING AN OFFICIAL POSITION IN THE SERVICE OF GOVERNMENT OF INDIA.",
+      "repairNotice": "THIS HANDBOOK DOES NOT CONSTITUTE AUTHORITY FOR REPAIRS OR REPLACEMENT OF COMPONENTS BY USERS. REPAIRS BY DIFFERENT AGENCIES WILL ONLY BE CARRIED OUT AS LAID DOWN IN PERMISSIBLE REPAIR SCHEDULES PUBLISHED AS EMERs OR EQUIVALENT FROM TIME TO TIME."
+    },
+    "proprietary": {
+      "text": "This document contains proprietary information, which is the sole property of the company submitting the document. The document is submitted to the recipient for his use only. By receiving this document, the recipient undertakes not to duplicate the document or to disclose in part of, or the whole of, any of the information contained herein to any third party without receiving beforehand, written permission from submitting company.",
+      "applicability": "THIS DOCUMENT IS APPLICABLE FOR XXXXXX CLASS OF XXX"
+    },
+    "foreword": {
+      "text": "Every care has been taken in the preparation of this document. The technical content has been authenticated. However, the reader is requested to communicate by E-mail/ Letter/ Telephone/ Fax to Larsen & Toubro, if any error is observed or there are any suggestions to improve this document.",
+      "email": "defence@larsentoubro.com",
+      "postalAddress": [
+        "Head, Documentation & Training,",
+        "L&T Defence, Larsen & Toubro.",
+        "G Building, Gate No. 1,",
+        "Saki Vihar Road, Powai.",
+        "Mumbai - 400 072."
+      ],
+      "telephone": [
+        "022 - 6705 3965"
+      ],
+      "fax": [
+        "022 - 6705 3234",
+        "022 - 6705 5914"
+      ]
+    },
+    "safetyWarning": [
+      {
+        "text": "The voltages employed in this Equipment are"
+      },
+      {
+        "text": "sufficiently high to endanger human life"
+      },
+      {
+        "text": "POWER",
+        "strong": true,
+        "spaceBefore": "6mm"
+      },
+      {
+        "text": "MUST BE SWITCHED OFF",
+        "strong": true
+      },
+      {
+        "text": "before servicing the equipment"
+      },
+      {
+        "text": "&",
+        "strong": true
+      },
+      {
+        "text": "GREAT CARE",
+        "strong": true
+      },
+      {
+        "text": "taken when making internal adjustments etc."
+      }
+    ],
+    "cautionsNotes": [
+      "Follow all standard XXX safety practices.",
+      "The system is to be serviced by authorised personnel only.",
+      "Make sure that all switches are on default position before switching ON the incoming supply.",
+      "Prior to switching ON the system, make sure that input supply voltage is of specified value.",
+      "Make sure that control wires in panels are secured firmly.",
+      "Never plug/ unplug connectors, modules while system is ON.",
+      "In humid condition switch ON the Panel Space Heater before switching ON panels."
+    ],
+    "descriptionOfSymbols": [
+      {
+        "icon": "Media/High_Voltage_Symbol.png",
+        "text": "This symbol indicates that this operation or action involves high voltage."
+      },
+      {
+        "icon": "Media/Flammable_Symbol.png",
+        "text": "This symbol indicates that this operation or action involves Highly Flammable material."
+      },
+      {
+        "icon": "Media/Emergency_Stop_Symbol.png",
+        "text": "This symbol indicates that system operation need to be stopped quickly."
+      },
+      {
+        "icon": "Media/Hot_Surface_Symbol.png",
+        "text": "This symbol indicates that this operation or action involves hot surface areas."
+      },
+      {
+        "icon": "Media/Antistalic_Symbol.png",
+        "text": "This symbol indicates that this operation or action to be carried out using antistatic wears."
+      },
+      {
+        "icon": "Media/Noise_symbol.png",
+        "text": "This symbol indicates that this operation or action involves high level sound noise."
+      }
+    ],
+    "noticeLegends": {
+      "note": "Denotes additional information.",
+      "warning": "Denotes possibility of danger to personnel due to improper use of equipment.",
+      "caution": "Denotes possibility of damage to equipment."
+    },
+    "firstAidImage": "Media/stamp1.png",
+    "systemImage": "",
+    "firstAidImageWidth": "58mm",
+    "firstAidImageHeight": "115mm",
+    "systemImages": [
+      "Media/Screenshot 2026-09-05 160259.png",
+      ""
+    ],
+    "style": "s1000d"
+  }
+}

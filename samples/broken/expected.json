@@ -1,0 +1,28 @@
+{
+  "note": "What validation must report for samples/broken. Used by test/content-validation.test.js.",
+  "schemaErrors": {
+    "csdb/DMC-AGS-A-24-00-00-00A-040A-D.xml": [
+      "attribute 'colorCode' is not allowed",
+      "Element 'paragraph': This element is not expected"
+    ]
+  },
+  "schemaValid": [
+    "csdb/DMC-AGS-A-00-00-00-00A-022A-D.xml",
+    "csdb/DMC-AGS-A-24-10-00-00A-520A-D.xml",
+    "publication.xml"
+  ],
+  "brexBreaches": {
+    "csdb/DMC-AGS-A-24-10-00-00A-520A-D.xml": [
+      "//security/@securityClassification",
+      "//language/@languageIsoCode",
+      "//emphasis[@emphasisType='em03']",
+      "//para/randomList/listItem/para/randomList"
+    ]
+  },
+  "missingGraphics": [
+    "ICN-AGS-A-240000-A-0AGS1-00001-A-01-1"
+  ],
+  "unresolvedReferences": [
+    "AGS-A-24-90-00-00A-999A-D"
+  ]
+}

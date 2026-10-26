@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Tileable 45-degree black/yellow hazard-stripe pattern for the "hazard"
+     notice style's CAUTION frame (see warnings.xsl, $notice.style = 'hazard').
+     A square SVG pattern with patternTransform="rotate(45)" tiles perfectly
+     at any repeat count — the pattern's own period is defined in its
+     pre-rotation coordinate space, so translating by one tile width/height
+     in the FINAL (rotated) space always maps the pattern back onto itself,
+     regardless of where the tile boundary falls. That is what lets FOP's
+     plain background-repeat="repeat" reproduce continuous diagonal stripes
+     with no visible seam, instead of needing one giant pre-rendered strip. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="12mm" height="12mm" viewBox="0 0 40 40">
+  <defs>
+    <pattern id="stripes" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect x="0" y="0" width="40" height="20" fill="#111111"/>
+      <rect x="0" y="20" width="40" height="20" fill="#FFCC00"/>
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="40" height="40" fill="url(#stripes)"/>
+</svg>

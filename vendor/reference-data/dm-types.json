@@ -1,0 +1,50 @@
+[
+  {
+    "id": "dmt-001",
+    "schema": "descript",
+    "name": "Descriptive",
+    "issue": "4.2"
+  },
+  {
+    "id": "dmt-002",
+    "schema": "proced",
+    "name": "Procedural",
+    "issue": "4.2"
+  },
+  {
+    "id": "dmt-003",
+    "schema": "fault",
+    "name": "Fault",
+    "issue": "4.2"
+  },
+  {
+    "id": "dmt-004",
+    "schema": "ipd",
+    "name": "IPD",
+    "issue": "4.2"
+  },
+  {
+    "id": "dmt-005",
+    "schema": "crew",
+    "name": "Crew",
+    "issue": "4.2"
+  },
+  {
+    "id": "dmt-006",
+    "schema": "schedul",
+    "name": "Schedule",
+    "issue": "4.2"
+  },
+  {
+    "id": "dmt-007",
+    "schema": "wrngdata",
+    "name": "Wiring data",
+    "issue": "4.2"
+  },
+  {
+    "id": "dmt-008",
+    "schema": "brex",
+    "name": "BREX",
+    "issue": "4.2"
+  }
+]

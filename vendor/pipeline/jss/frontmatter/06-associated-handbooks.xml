@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Stencil page vii: the standard technical-literature set. INBR numbers are
+     filled in per book. -->
+<associatedHandbooks>
+    <handbook sr="1">
+        <title>User Handbook</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2">
+        <title>Technical Manual</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2.1">
+        <title>Part - I Technical Information</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2.1.1">
+        <title>Volume - 1 of 2 Technical Description</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2.1.2">
+        <title>Volume - 2 of 2 Drawings</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2.2">
+        <title>Part - II Maintenance</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2.3">
+        <title>Part - III Overhauling and Reconditioning Instructions</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2.4">
+        <title>Part - IV Manufacturer's Parts List</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2.4.1">
+        <title>Volume - 1 of 2 Parts List</title>
+        <inbr/>
+    </handbook>
+    <handbook sr="2.4.2">
+        <title>Volume - 2 of 2 Illustrations</title>
+        <inbr/>
+    </handbook>
+</associatedHandbooks>

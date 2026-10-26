@@ -1,0 +1,27 @@
+[
+  {
+    "id": "sec-001",
+    "code": "01",
+    "name": "Unclassified"
+  },
+  {
+    "id": "sec-002",
+    "code": "02",
+    "name": "Restricted"
+  },
+  {
+    "id": "sec-003",
+    "code": "03",
+    "name": "Confidential"
+  },
+  {
+    "id": "sec-004",
+    "code": "04",
+    "name": "Secret"
+  },
+  {
+    "id": "sec-005",
+    "code": "05",
+    "name": "Top secret"
+  }
+]

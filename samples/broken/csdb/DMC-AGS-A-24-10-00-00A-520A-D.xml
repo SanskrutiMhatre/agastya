@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/proced.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="1" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="520" infoCodeVariant="A" itemLocationCode="D"/>
+        <language languageIsoCode="fr" countryIsoCode="FR"/>
+        <issueInfo issueNumber="001" inWork="00"/>
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate year="2026" month="10" day="01"/>
+        <dmTitle>
+          <techName>Power supply module</techName>
+          <infoName>Remove procedure</infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="new">
+      <security securityClassification="05"/>
+      <responsiblePartnerCompany enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </responsiblePartnerCompany>
+      <originator enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </originator>
+      <applic>
+        <displayText>
+          <simplePara>All</simplePara>
+        </displayText>
+      </applic>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <firstVerification verificationType="tabtop"/>
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <procedure>
+      <preliminaryRqmts>
+        <reqCondGroup>
+          <reqCondNoRef>
+            <reqCond>The radar cabinet is switched off at the main circuit breaker.</reqCond>
+          </reqCondNoRef>
+        </reqCondGroup>
+        <reqPersons>
+          <person man="A">
+            <personCategory personCategoryCode="Maintainer"/>
+            <trade>Electrical technician</trade>
+            <estimatedTime unitOfMeasure="min">10</estimatedTime>
+          </person>
+        </reqPersons>
+        <reqSupportEquips>
+          <supportEquipDescrGroup>
+            <supportEquipDescr id="seq-241520-01">
+              <name>Torque screwdriver, 0.5 N.m to 3 N.m</name>
+              <identNumber>
+                <manufacturerCode>0AGS1</manufacturerCode>
+                <partAndSerialNumber>
+                  <partNumber>TS-0503</partNumber>
+                </partAndSerialNumber>
+              </identNumber>
+              <reqQuantity>1</reqQuantity>
+            </supportEquipDescr>
+          </supportEquipDescrGroup>
+        </reqSupportEquips>
+        <reqSupplies>
+          <noSupplies/>
+        </reqSupplies>
+        <reqSpares>
+          <noSpares/>
+        </reqSpares>
+        <reqSafety>
+          <safetyRqmts>
+            <warning>
+              <warningAndCautionPara>Dangerous voltages are present in the PDU-200 when mains power is connected. Make sure the main circuit breaker is open and tagged before you start. If you do not, you can be killed or seriously injured.</warningAndCautionPara>
+            </warning>
+            <caution>
+              <warningAndCautionPara>The power supply module contains parts that electrostatic discharge can damage. Wear a grounded wrist strap.</warningAndCautionPara>
+            </caution>
+          </safetyRqmts>
+        </reqSafety>
+      </preliminaryRqmts>
+      <mainProcedure>
+        <proceduralStep id="stp-241520-01">
+          <para>Make sure that the amber indicator for the module you will remove is on, or that the module is the one identified for replacement.</para>
+        </proceduralStep>
+        <proceduralStep id="stp-241520-02">
+          <para>Loosen the <emphasis emphasisType="em03">two captive screws</emphasis> on the module front panel.</para>
+        </proceduralStep>
+        <proceduralStep id="stp-241520-03">
+          <para>Pull the module straight out of its slot by its handle.</para>
+          <note>
+            <notePara>The other module continues to supply the full load while one module is removed.</notePara>
+          </note>
+        </proceduralStep>
+        <proceduralStep id="stp-241520-04">
+          <para>Put the module in an anti-static bag:<randomList><listItem><para>Seal the bag.<randomList><listItem><para>Fold the top twice.</para></listItem></randomList></para></listItem></randomList></para>
+        </proceduralStep>
+      </mainProcedure>
+      <closeRqmts>
+        <reqCondGroup>
+          <reqCondNoRef>
+            <reqCond>Install a serviceable module before the radar is put back into service.</reqCond>
+          </reqCondNoRef>
+        </reqCondGroup>
+      </closeRqmts>
+    </procedure>
+  </content>
+</dmodule>

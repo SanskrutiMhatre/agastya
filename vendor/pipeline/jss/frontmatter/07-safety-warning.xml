@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated from the effective config by engine/frontmatter.js. Do not edit. -->
+<safetyWarning>
+    <line>The voltages employed in this Equipment are</line>
+    <line>sufficiently high to endanger human life</line>
+    <line emphasis="strong" space-before="6mm">POWER</line>
+    <line emphasis="strong">MUST BE SWITCHED OFF</line>
+    <line>before servicing the equipment</line>
+    <line emphasis="strong">&amp;</line>
+    <line emphasis="strong">GREAT CARE</line>
+    <line>taken when making internal adjustments etc.</line>
+</safetyWarning>

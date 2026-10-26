@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/descript.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="012" infoCodeVariant="A" itemLocationCode="D"/>
+        <language languageIsoCode="en" countryIsoCode="US"/>
+        <issueInfo issueNumber="001" inWork="00"/>
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate year="2026" month="10" day="01"/>
+        <dmTitle>
+          <techName>Radar power system</techName>
+          <infoName>General warnings and cautions</infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="new">
+      <security securityClassification="01"/>
+      <responsiblePartnerCompany enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </responsiblePartnerCompany>
+      <originator enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </originator>
+      <applic>
+        <displayText>
+          <simplePara>All</simplePara>
+        </displayText>
+      </applic>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <firstVerification verificationType="tabtop"/>
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <description>
+      <levelledPara id="par-000012-01">
+        <title>Warnings</title>
+        <warning>
+          <warningAndCautionPara>Dangerous voltages are present in the PDU-200 when mains power is connected. Make sure the main circuit breaker is open and tagged before you start. If you do not, you can be killed or seriously injured.</warningAndCautionPara>
+        </warning>
+        <warning>
+          <warningAndCautionPara>The power supply modules can stay hot for up to 15 minutes after power is removed. Wear protective gloves when you handle them.</warningAndCautionPara>
+        </warning>
+        <para>Obey the warnings above when you work on the radar power system. Each procedure in this publication repeats the warnings that apply to it.</para>
+      </levelledPara>
+      <levelledPara id="par-000012-02">
+        <title>Cautions</title>
+        <caution>
+          <warningAndCautionPara>The power supply modules contain parts that electrostatic discharge can damage. Wear a grounded wrist strap when you handle a module.</warningAndCautionPara>
+        </caution>
+        <caution>
+          <warningAndCautionPara>Do not force a module into its slot. Damage to the rear connector can occur.</warningAndCautionPara>
+        </caution>
+        <para>Obey these cautions to prevent damage to the equipment.</para>
+      </levelledPara>
+    </description>
+  </content>
+</dmodule>

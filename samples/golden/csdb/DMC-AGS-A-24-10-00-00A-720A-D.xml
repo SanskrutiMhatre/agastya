@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmodule xmlns:dc="http://www.purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.s1000d.org/S1000D_4-2/xml_schema_flat/proced.xsd">
+  <identAndStatusSection>
+    <dmAddress>
+      <dmIdent>
+        <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="1" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="720" infoCodeVariant="A" itemLocationCode="D"/>
+        <language languageIsoCode="en" countryIsoCode="US"/>
+        <issueInfo issueNumber="001" inWork="00"/>
+      </dmIdent>
+      <dmAddressItems>
+        <issueDate year="2026" month="10" day="01"/>
+        <dmTitle>
+          <techName>Power supply module</techName>
+          <infoName>Install procedure</infoName>
+        </dmTitle>
+      </dmAddressItems>
+    </dmAddress>
+    <dmStatus issueType="new">
+      <security securityClassification="01"/>
+      <responsiblePartnerCompany enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </responsiblePartnerCompany>
+      <originator enterpriseCode="0AGS1">
+        <enterpriseName>Agastya Sample Works</enterpriseName>
+      </originator>
+      <applic>
+        <displayText>
+          <simplePara>All</simplePara>
+        </displayText>
+      </applic>
+      <brexDmRef>
+        <dmRef>
+          <dmRefIdent>
+            <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="00" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="022" infoCodeVariant="A" itemLocationCode="D"/>
+          </dmRefIdent>
+        </dmRef>
+      </brexDmRef>
+      <qualityAssurance>
+        <firstVerification verificationType="tabtop"/>
+      </qualityAssurance>
+    </dmStatus>
+  </identAndStatusSection>
+  <content>
+    <procedure>
+      <preliminaryRqmts>
+        <reqCondGroup>
+          <reqCondDm>
+            <reqCond>The faulty power supply module is removed.</reqCond>
+            <dmRef>
+            <dmRefIdent>
+              <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="1" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="520" infoCodeVariant="A" itemLocationCode="D"/>
+            </dmRefIdent>
+          </dmRef>
+          </reqCondDm>
+        </reqCondGroup>
+        <reqPersons>
+          <person man="A">
+            <personCategory personCategoryCode="Maintainer"/>
+            <trade>Electrical technician</trade>
+            <estimatedTime unitOfMeasure="min">10</estimatedTime>
+          </person>
+        </reqPersons>
+        <reqSupportEquips>
+          <supportEquipDescrGroup>
+            <supportEquipDescr id="seq-241720-01">
+              <name>Torque screwdriver, 0.5 N.m to 3 N.m</name>
+              <identNumber>
+                <manufacturerCode>0AGS1</manufacturerCode>
+                <partAndSerialNumber>
+                  <partNumber>TS-0503</partNumber>
+                </partAndSerialNumber>
+              </identNumber>
+              <reqQuantity>1</reqQuantity>
+            </supportEquipDescr>
+          </supportEquipDescrGroup>
+        </reqSupportEquips>
+        <reqSupplies>
+          <noSupplies/>
+        </reqSupplies>
+        <reqSpares>
+          <noSpares/>
+        </reqSpares>
+        <reqSafety>
+          <safetyRqmts>
+            <warning>
+              <warningAndCautionPara>Dangerous voltages are present in the PDU-200 when mains power is connected. Make sure the main circuit breaker is open and tagged before you start. If you do not, you can be killed or seriously injured.</warningAndCautionPara>
+            </warning>
+          </safetyRqmts>
+        </reqSafety>
+      </preliminaryRqmts>
+      <mainProcedure>
+        <proceduralStep id="stp-241720-01">
+          <para>Do a visual inspection of the replacement module. Refer to
+            <dmRef>
+            <dmRefIdent>
+              <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="1" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="310" infoCodeVariant="A" itemLocationCode="D"/>
+            </dmRefIdent>
+          </dmRef>.</para>
+        </proceduralStep>
+        <proceduralStep id="stp-241720-02">
+          <para>Align the module with the guide rails and push it fully into its slot.</para>
+        </proceduralStep>
+        <proceduralStep id="stp-241720-03">
+          <para>Tighten the two captive screws to 1.2 N.m with the torque screwdriver.</para>
+        </proceduralStep>
+        <proceduralStep id="stp-241720-04">
+          <para>Make sure the amber indicator for the module goes off.</para>
+        </proceduralStep>
+      </mainProcedure>
+      <closeRqmts>
+        <reqCondGroup>
+          <reqCondDm>
+            <reqCond>Do the operational test of the PDU-200.</reqCond>
+            <dmRef>
+            <dmRefIdent>
+              <dmCode modelIdentCode="AGS" systemDiffCode="A" systemCode="24" subSystemCode="0" subSubSystemCode="0" assyCode="00" disassyCode="00" disassyCodeVariant="A" infoCode="320" infoCodeVariant="A" itemLocationCode="D"/>
+            </dmRefIdent>
+          </dmRef>
+          </reqCondDm>
+        </reqCondGroup>
+      </closeRqmts>
+    </procedure>
+  </content>
+</dmodule>

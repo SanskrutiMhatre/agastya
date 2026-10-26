@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated from the effective config by engine/frontmatter.js. Do not edit. -->
+<descriptionOfSymbols>
+    <symbolList>
+        <symbol src="Media/High_Voltage_Symbol.png">This symbol indicates that this operation or action involves high voltage.</symbol>
+        <symbol src="Media/Flammable_Symbol.png">This symbol indicates that this operation or action involves Highly Flammable material.</symbol>
+        <symbol src="Media/Emergency_Stop_Symbol.png">This symbol indicates that system operation need to be stopped quickly.</symbol>
+        <symbol src="Media/Hot_Surface_Symbol.png">This symbol indicates that this operation or action involves hot surface areas.</symbol>
+        <symbol src="Media/Antistalic_Symbol.png">This symbol indicates that this operation or action to be carried out using antistatic wears.</symbol>
+        <symbol src="Media/Noise_symbol.png">This symbol indicates that this operation or action involves high level sound noise.</symbol>
+    </symbolList>
+    <noticeList>
+        <note>
+            <para>Denotes additional information.</para>
+        </note>
+        <warning>
+            <para>Denotes possibility of danger to personnel due to improper use of equipment.</para>
+        </warning>
+        <caution>
+            <para>Denotes possibility of damage to equipment.</para>
+        </caution>
+    </noticeList>
+</descriptionOfSymbols>
