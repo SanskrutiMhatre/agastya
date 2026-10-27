@@ -3,17 +3,18 @@ import { Card, CardHeader, PageHeader } from '../../components/ui/Card.jsx';
 import StatTile from '../../components/ui/StatTile.jsx';
 import ColumnChart from '../../components/ui/ColumnChart.jsx';
 import DataTable from '../../components/ui/DataTable.jsx';
-import { EmptyState, ErrorState, LoadingBlock, PhasePlaceholder } from '../../components/ui/States.jsx';
-import { OwnerTag, RoleBadge } from '../../components/ui/Badge.jsx';
+import { Alert, EmptyState, ErrorState, LoadingBlock } from '../../components/ui/States.jsx';
+import { Badge, OwnerTag, RoleBadge, StatusBadge } from '../../components/ui/Badge.jsx';
+import { ModuleStatusBadge } from '../../components/ModuleStatusBadge.jsx';
 import Icon from '../../components/Icon.jsx';
 import useResource from '../../lib/useResource.js';
-import { describeAction, fmtDate, fmtRelative, isFailureAction } from '../../lib/format.js';
+import { describeAction, fmtRelative, isFailureAction } from '../../lib/format.js';
 import { RequestBadge, REQUEST_STATUS } from '../projects/ApprovalCard.jsx';
 
 const DAY = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
 const SHORT = new Intl.DateTimeFormat(undefined, { day: 'numeric', timeZone: 'UTC' });
 
-// Every approval request, by status, and the latest ones (Phase 3; the administrator's override is Phase 4).
+// Every approval request, by status, and the latest ones; the administrator decides, resets or reassigns from the review screen.
 function Submissions({ loading, data }) {
   return (
     <Card>
@@ -42,6 +43,88 @@ function Submissions({ loading, data }) {
               ))}
             </ul>
           </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/*
+  Organisation-wide oversight (decisions.md V1): requests nobody can decide,
+  each Project Manager's queue, each Author's work, and who is working on
+  what across every project (Author-owned ones included).
+*/
+function Stuck({ items }) {
+  if (!items || !items.length) return null;
+  return (
+    <div className="mb-6" data-testid="stuck-requests">
+      <Alert tone="danger" title={`${items.length} pending request${items.length === 1 ? '' : 's'} with a disabled Project Manager`}>
+        Nobody can decide {items.length === 1 ? 'it' : 'them'} until {items.length === 1 ? 'it is' : 'they are'} reassigned.
+        <ul className="mt-2 space-y-1">
+          {items.map((r) => (
+            <li key={r.id}><Link to={`/approvals/${r.id}`} className="font-medium underline">{r.title || r.projectName}</Link> · {r.projectName} · sent by {r.submittedBy} to {r.manager.name} {fmtRelative(r.submittedAt)}</li>
+          ))}
+        </ul>
+      </Alert>
+    </div>
+  );
+}
+
+function Workload({ loading, o }) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2 items-start">
+      <Card>
+        <CardHeader title="Project Managers" subtitle="Approval queues and decisions in the last 30 days" />
+        {loading || !o ? <div className="px-5 pb-5"><LoadingBlock rows={3} /></div> : (
+          <DataTable caption="Project Manager workload" rows={o.managers} initialSort={{ key: 'pending', dir: 'desc' }}
+            empty={<EmptyState icon="users" title="No Project Managers yet" />}
+            columns={[
+              { key: 'name', header: 'Manager', sortValue: (m) => m.fullName, render: (m) => <span className="inline-flex flex-wrap items-center gap-1.5"><Link to={`/users/${m.id}`} className="font-medium text-ink hover:text-accent hover:underline">{m.fullName}</Link>{m.status !== 'active' ? <StatusBadge status={m.status} /> : null}{m.stuck ? <Badge tone="danger" icon="alert">Requests stuck</Badge> : null}</span> },
+              { key: 'pending', header: 'Pending', align: 'right', sortValue: (m) => m.pending, render: (m) => <span className={m.pending ? 'font-semibold text-ink' : 'text-ink-3'}>{m.pending}</span> },
+              { key: 'oldest', header: 'Oldest', sortValue: (m) => m.oldestPending || '', render: (m) => <span className="text-ink-2">{m.oldestPending ? fmtRelative(m.oldestPending) : '—'}</span>, hideBelow: 'sm' },
+              { key: 'decided', header: 'Decided', align: 'right', sortValue: (m) => m.decided30d, render: (m) => m.decided30d, hideBelow: 'md' },
+              { key: 'projects', header: 'Projects', align: 'right', sortValue: (m) => m.projects, render: (m) => m.projects, hideBelow: 'md' },
+            ]} />
+        )}
+      </Card>
+      <Card>
+        <CardHeader title="Authors" subtitle="Projects, modules last saved by them, drafts and requests" />
+        {loading || !o ? <div className="px-5 pb-5"><LoadingBlock rows={3} /></div> : (
+          <DataTable caption="Author workload" rows={o.authors} initialSort={{ key: 'last', dir: 'desc' }}
+            empty={<EmptyState icon="users" title="No Authors yet" />}
+            columns={[
+              { key: 'name', header: 'Author', sortValue: (a) => a.fullName, render: (a) => <span className="inline-flex flex-wrap items-center gap-1.5"><Link to={`/users/${a.id}`} className="font-medium text-ink hover:text-accent hover:underline">{a.fullName}</Link>{a.status !== 'active' ? <StatusBadge status={a.status} /> : null}</span> },
+              { key: 'projects', header: 'Projects', align: 'right', sortValue: (a) => a.projects.owned + a.projects.assigned, render: (a) => <span title={`${a.projects.owned} owned, ${a.projects.assigned} assigned`}>{a.projects.owned + a.projects.assigned}</span> },
+              { key: 'modules', header: 'Modules', sortValue: (a) => a.modules.draft + a.modules.in_review + a.modules.approved, render: (a) => <span className="text-[12px] text-ink-2 tabular">{a.modules.draft} draft · {a.modules.in_review} review · {a.modules.approved} approved</span>, hideBelow: 'sm' },
+              { key: 'drafts', header: 'Drafts', align: 'right', sortValue: (a) => a.drafts, render: (a) => a.drafts, hideBelow: 'md' },
+              { key: 'last', header: 'Last work', sortValue: (a) => a.lastActionAt || '', render: (a) => <span className="text-ink-2">{a.lastActionAt ? fmtRelative(a.lastActionAt) : 'none yet'}</span>, hideBelow: 'md' },
+            ]} />
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function WorkingOn({ loading, o }) {
+  const items = o ? o.activity.items.slice(0, 15) : [];
+  return (
+    <Card>
+      <CardHeader title="Who is working on what" subtitle="Each Author's latest work on every project, with unsaved drafts (never their content)" />
+      <div className="px-5 pb-5">
+        {loading || !o ? <LoadingBlock rows={4} /> : !items.length ? <p className="text-[13px] text-ink-3 py-2">No Author activity yet.</p> : (
+          <ul className="divide-y divide-line rounded-md border border-line text-[13px]" data-testid="admin-working-on">
+            {items.map((it, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+                <span className="font-medium text-ink">{it.author.name}</span>
+                <span className="text-ink-2">{it.action}</span>
+                <span className="min-w-0 text-ink">{it.target.type === 'dm' ? <span className="font-mono text-[12px]">{it.target.dmc}</span> : it.target.label}</span>
+                {it.target.status ? <ModuleStatusBadge status={it.target.status} /> : null}
+                <Link to={`/projects/${it.project.id}`} className="text-accent hover:underline">{it.project.name}</Link>
+                <span className="text-ink-3">{fmtRelative(it.at)}</span>
+                {it.draftSince ? <Badge tone="warn" icon="edit">Unsaved draft since {fmtRelative(it.draftSince)}</Badge> : null}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </Card>
@@ -104,6 +187,7 @@ function ActivityFeed({ items }) {
 
 export default function AdminDashboard() {
   const { data, loading, error, reload } = useResource('/api/dashboard/admin');
+  const over = useResource('/api/admin/oversight');
 
   if (error) return <Card><ErrorState error={error} onRetry={reload} /></Card>;
   const d = data;
@@ -114,7 +198,9 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <PageHeader eyebrow="Software Administrator" title="Organisation overview" subtitle="Accounts, projects and sign-in activity across Agastya." />
+      <PageHeader eyebrow="Software Administrator" title="Organisation overview" subtitle="Accounts, projects, approvals and who is working on what across Agastya."
+        actions={<><Link to="/audit" className="text-[13px] text-accent hover:underline">Audit log</Link><Link to="/health" className="text-[13px] text-accent hover:underline">System health</Link></>} />
+      <Stuck items={over.data && over.data.stuck} />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile loading={loading} label="User accounts" icon="users" to="/users" value={d && d.totals.users}
@@ -151,18 +237,19 @@ export default function AdminDashboard() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-5 items-start">
         <Card className="lg:col-span-3">
-          <CardHeader title="Projects" subtitle={d ? `Owned by Project Managers: ${d.ownership.byManagers} · by Authors: ${d.ownership.byAuthors}` : 'Who owns what'} actions={<Link to="/projects" className="text-[13px] text-accent hover:underline">All projects</Link>} />
-          {loading ? <div className="px-5 pb-5"><LoadingBlock rows={3} /></div> : (
+          <CardHeader title="Every project" subtitle={d ? `Owned by Project Managers: ${d.ownership.byManagers} · by Authors: ${d.ownership.byAuthors}` : 'Who owns what'} actions={<Link to="/projects" className="text-[13px] text-accent hover:underline">All projects</Link>} />
+          {loading || over.loading || !over.data ? <div className="px-5 pb-5"><LoadingBlock rows={3} /></div> : (
             <DataTable
               caption="Projects"
-              rows={d.projects}
-              initialSort={{ key: 'created', dir: 'desc' }}
-              empty={<EmptyState icon="folder" title="No projects yet">Project Managers create projects from their dashboard.</EmptyState>}
+              rows={over.data.projects}
+              initialSort={{ key: 'activity', dir: 'desc' }}
+              empty={<EmptyState icon="folder" title="No projects yet">Project Managers and Authors create projects.</EmptyState>}
               columns={[
                 { key: 'name', header: 'Project', sortValue: (p) => p.name, render: (p) => <Link to={`/projects/${p.id}`} className="font-medium text-ink hover:text-accent hover:underline">{p.name}</Link> },
                 { key: 'owner', header: 'Owner', sortValue: (p) => p.owner.fullName, render: (p) => <OwnerTag owner={p.owner} size={20} />, hideBelow: 'sm' },
-                { key: 'authors', header: 'Authors', align: 'right', sortValue: (p) => p.authorCount, render: (p) => p.authorCount },
-                { key: 'created', header: 'Created', sortValue: (p) => p.createdAt, render: (p) => fmtDate(p.createdAt), hideBelow: 'md' },
+                { key: 'modules', header: 'Modules', sortValue: (p) => p.modules.draft + p.modules.in_review + p.modules.approved, render: (p) => <span className="text-[12px] text-ink-2 tabular" title="draft · in review · approved">{p.modules.draft} · {p.modules.in_review} · {p.modules.approved}</span>, hideBelow: 'lg' },
+                { key: 'request', header: 'Approval', sortValue: (p) => (p.request ? p.request.status : ''), render: (p) => (p.request ? <RequestBadge status={p.request.status} /> : <span className="text-[12px] text-ink-3">Not submitted</span>) },
+                { key: 'activity', header: 'Last activity', sortValue: (p) => p.lastActivityAt || '', render: (p) => <span className="text-ink-2">{fmtRelative(p.lastActivityAt)}</span>, hideBelow: 'md' },
               ]}
             />
           )}
@@ -170,15 +257,15 @@ export default function AdminDashboard() {
         <Card className="lg:col-span-2">
           <CardHeader title="Recent activity" subtitle="From the audit log" />
           {loading ? <div className="px-5 pb-5"><LoadingBlock rows={5} /></div> : <div className="pb-2"><ActivityFeed items={d.recentActivity} /></div>}
-          <div className="px-5 pb-5">
-            <PhasePlaceholder compact phase={4} title="Full audit log viewer">Filters and export arrive with the administrator console.</PhasePlaceholder>
-          </div>
+          <div className="px-5 pb-5"><Link to="/audit" className="text-[13px] text-accent hover:underline">Open the full audit log: filters and CSV export</Link></div>
         </Card>
       </div>
 
       <div className="mt-6">
         <Submissions loading={loading} data={d && d.submissions} />
       </div>
+      <div className="mt-6"><Workload loading={over.loading} o={over.data} /></div>
+      <div className="mt-6"><WorkingOn loading={over.loading} o={over.data} /></div>
     </>
   );
 }

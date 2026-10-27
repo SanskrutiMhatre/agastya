@@ -14,6 +14,7 @@ import { useBuildLog } from '../../lib/useLive.js';
 import { useAuth } from '../../auth.jsx';
 import PmcBuilder from './PmcBuilder.jsx';
 import ApprovalCard from './ApprovalCard.jsx';
+import { useOverrideSession } from '../../components/OverrideSession.jsx';
 import { LockBanner } from '../../components/LockBanner.jsx';
 
 const KIND = { schema: 'XSD', brex: 'BREX', graphic: 'Graphic', reference: 'Reference', id: 'Id', file: 'File' };
@@ -23,7 +24,7 @@ const KIND = { schema: 'XSD', brex: 'BREX', graphic: 'Graphic', reference: 'Refe
   (project.json frontMatter.labels). Blank uses the default; "-" leaves an
   authority line out.
 */
-function WordingCard({ project, canWrite }) {
+function WordingCard({ project, canWrite, overriding = false }) {
   const toast = useToast();
   const [data, setData] = useState(null);
   const [values, setValues] = useState({});
@@ -34,7 +35,7 @@ function WordingCard({ project, canWrite }) {
   }, [project.id]);
   if (error) return <Card><ErrorState error={error} /></Card>;
   if (!data) return null;
-  const writable = canWrite && !data.lock;
+  const writable = canWrite && (!data.lock || overriding);
   const dirty = Object.keys(values).some((k) => values[k] !== data.wording[k]);
   async function save() {
     setBusy(true);
@@ -51,7 +52,7 @@ function WordingCard({ project, canWrite }) {
             {(p) => <Input {...p} value={values[k] || ''} placeholder={f.default.trim()} readOnly={!writable} maxLength={200} onChange={(e) => setValues({ ...values, [k]: e.target.value })} />}
           </Field>
         ))}
-        {data.lock ? <p className="text-[12px] text-warn">Locked with the submitted publication.</p> : null}
+        {data.lock ? <p className="text-[12px] text-warn">{overriding ? 'Part of a pending request: saving makes it out of date (you are asked first).' : 'Locked with the submitted publication.'}</p> : null}
         {writable ? <div className="flex justify-end"><Button size="sm" variant="primary" onClick={save} loading={busy} disabled={!dirty}>Save wording</Button></div> : null}
       </div>
     </Card>
@@ -59,7 +60,7 @@ function WordingCard({ project, canWrite }) {
 }
 
 // The publication module as XML text, with the save guards and an autosaved draft.
-function XmlView({ project, canWrite: mayWrite, onSaved }) {
+function XmlView({ project, canWrite: mayWrite, onSaved, overriding = false, drafts = true }) {
   const toast = useToast();
   const [pm, setPm] = useState(null);
   const [xml, setXml] = useState('');
@@ -69,26 +70,26 @@ function XmlView({ project, canWrite: mayWrite, onSaved }) {
   const [saveNotes, setSaveNotes] = useState(null);
   const [draft, setDraft] = useState(null);
   const timer = useRef(null);
-  const canWrite = mayWrite && !(pm && pm.lock);
+  const canWrite = mayWrite && (!(pm && pm.lock) || overriding);
 
   const load = useCallback(async () => {
     try {
       const r = await get(`/api/projects/${project.id}/publication`);
       setPm(r); setXml(r.xml); setError(null);
-      if (mayWrite && !r.lock) {
+      if (mayWrite && drafts && !r.lock) {
         try { const d = (await get(`/api/projects/${project.id}/drafts/publication`)).draft; setDraft(d && d.content !== r.xml ? d : null); } catch { setDraft(null); }
       }
     } catch (e) { setError(e); }
-  }, [project.id, mayWrite]);
+  }, [project.id, mayWrite, drafts]);
   useEffect(() => { load(); }, [load]);
 
   const dirty = pm && xml !== pm.xml;
   useEffect(() => {
-    if (!canWrite || !dirty) return undefined;
+    if (!canWrite || !drafts || !dirty) return undefined;
     clearTimeout(timer.current);
     timer.current = setTimeout(() => { put(`/api/projects/${project.id}/drafts/publication`, { content: xml, baseRevision: pm.revision }).catch(() => {}); }, 2000);
     return () => clearTimeout(timer.current);
-  }, [xml, dirty, canWrite, pm, project.id]);
+  }, [xml, dirty, canWrite, drafts, pm, project.id]);
 
   async function save(allowEmpty = false) {
     setBusy(true); setSaveError(null); setSaveNotes(null);
@@ -99,6 +100,11 @@ function XmlView({ project, canWrite: mayWrite, onSaved }) {
       toast.success('Publication module saved', r.counts ? `${r.counts.dms} data module entries in ${r.counts.folders} chapters` : undefined);
       onSaved && onSaved();
     } catch (e) {
+      if (e.code === 'CONFLICT' && drafts) {
+        // The refused text becomes the user's draft at once (decisions.md B11).
+        clearTimeout(timer.current);
+        await put(`/api/projects/${project.id}/drafts/publication`, { content: xml, baseRevision: pm.revision }).catch(() => {});
+      }
       setSaveError(e.code === 'CONFLICT' ? { message: 'Someone else saved the publication module after you opened it. Your text is kept as your draft: reload, restore it, and apply your changes again.' } : e);
     }
     setBusy(false);
@@ -108,7 +114,7 @@ function XmlView({ project, canWrite: mayWrite, onSaved }) {
   if (!pm) return <Card className="p-6"><LoadingBlock rows={6} /></Card>;
   return (
     <Card className="overflow-hidden">
-      {pm.lock ? <LockBanner lock={pm.lock} what="The publication module" className="m-4" /> : null}
+      {pm.lock ? <LockBanner lock={pm.lock} override={overriding} what="The publication module" className="m-4" /> : null}
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-line bg-surface-2">
         <span className="text-[13px] text-ink-2">publication.xml</span>
         <span className="text-[12px] text-ink-3">{pm.revisionAt ? `saved ${fmtRelative(pm.revisionAt)}${pm.revisionBy ? ` by ${pm.revisionBy}` : ''}` : ''}{dirty ? ' · unsaved' : ''}</span>
@@ -146,9 +152,12 @@ function XmlView({ project, canWrite: mayWrite, onSaved }) {
   progress and an inline viewer, approval submission, validation, and the
   front-matter wording.
 */
-export default function PublicationTab({ project, canWrite, canBuild }) {
+export default function PublicationTab({ project, canWrite: mayWrite, canBuild, override = false, drafts = true }) {
   const toast = useToast();
   const { me } = useAuth();
+  // The administrator edits the publication module and its wording only as an override (decisions.md V3).
+  const ov = useOverrideSession({ projectId: project.id, docKey: 'publication', label: 'the publication module and its wording', enabled: override });
+  const canWrite = mayWrite || ov.active;
   const [view, setView] = useState('builder');
   const [busy, setBusy] = useState(null);
   const [report, setReport] = useState(null);
@@ -180,14 +189,15 @@ export default function PublicationTab({ project, canWrite, canBuild }) {
   }
 
   const errors = report ? report.findings.filter((f) => f.sev !== 'info') : [];
-  const canSubmit = me.user.role === 'author' && canWrite;
+  const canSubmit = me.user.role === 'author' && mayWrite;
 
   return (
     <div className="space-y-6">
+      {ov.bar}
       <div>
         <Tabs idBase="pub" value={view} onChange={setView} tabs={[{ value: 'builder', label: 'Builder' }, { value: 'xml', label: 'XML' }]} />
-        <TabPanel idBase="pub" value="builder" active={view}><PmcBuilder project={project} canWrite={canWrite} onSaved={() => setRefreshKey((k) => k + 1)} /></TabPanel>
-        <TabPanel idBase="pub" value="xml" active={view}><XmlView project={project} canWrite={canWrite} onSaved={() => setRefreshKey((k) => k + 1)} /></TabPanel>
+        <TabPanel idBase="pub" value="builder" active={view}><PmcBuilder key={ov.active ? 'override' : 'normal'} project={project} canWrite={canWrite} overriding={ov.active} drafts={drafts} onSaved={() => setRefreshKey((k) => k + 1)} /></TabPanel>
+        <TabPanel idBase="pub" value="xml" active={view}><XmlView key={ov.active ? 'override' : 'normal'} project={project} canWrite={canWrite} overriding={ov.active} drafts={drafts} onSaved={() => setRefreshKey((k) => k + 1)} /></TabPanel>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_420px] items-start">
@@ -244,7 +254,7 @@ export default function PublicationTab({ project, canWrite, canBuild }) {
               )}
             </div>
           </Card>
-          <WordingCard project={project} canWrite={canWrite} />
+          <WordingCard project={project} canWrite={canWrite} overriding={ov.active} />
         </div>
       </div>
     </div>

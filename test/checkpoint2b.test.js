@@ -168,7 +168,7 @@ test('drafts: private to their author, kept until the real save, never for reade
   assert.equal((await author.get(url)).body.draft.content, '<dmodule>half-typed');
   assert.equal((await partner.get(url)).status, 404, 'another writer does not see my draft');
   assert.equal((await pm.get(url)).status, 404, 'a manager without the project sees nothing');
-  assert.equal((await admin.get(url)).body.code, 'OVERRIDE_REQUIRED', 'drafts belong to writers');
+  assert.equal((await admin.get(url)).body.code, 'FORBIDDEN', 'drafts belong to the Authors who write; the administrator keeps none (V3)');
   assert.equal((await author.raw('PUT', `/api/projects/${project.id}/drafts/dm-00000000-0000-0000-0000-000000000000`, { content: 'x' })).status, 404);
   assert.equal((await author.raw('PUT', `/api/projects/${project.id}/drafts/..%2F..%2Fx`, { content: 'x' })).status, 404);
   assert.equal((await author.raw('PUT', url, { content: 'x', evil: 1 })).body.code, 'UNKNOWN_FIELD');

@@ -15,18 +15,26 @@
   stored about the lock itself.
 
   The Software Administrator is exempt: an administrator edit goes through
-  the override path (Phase 4) and marks the request stale instead.
+  the override path (decisions.md V3, V5) and marks the request stale
+  instead. Because that ends someone else's request, a save of a frozen file
+  by the administrator is refused (409 OVERRIDE_MAKES_STALE, naming the
+  request) until they acknowledge it.
 */
 
 const fs = require('node:fs');
 const { snapshotFile, PUBLICATION_REF } = require('./requests');
 
 class LockedError extends Error {
-  constructor(lock) {
+  constructor(lock, { override = false } = {}) {
     super(`Locked: pending approval. This is part of a publication submitted by ${lock.submittedBy} to ${lock.manager} on ${lock.submittedAt.slice(0, 10)}. It can be edited again once the request is withdrawn, rejected or sent back with changes requested.`);
     this.status = 423;
     this.code = 'LOCKED_PENDING_APPROVAL';
     this.lock = lock;
+    if (override) {
+      this.message = `This is part of the publication ${lock.submittedBy} submitted to ${lock.manager} on ${lock.submittedAt.slice(0, 10)}. Saving it as an override makes that request out of date: the lock lifts, the Author and the manager are told, and the Author submits again. To decide the request on what was submitted instead, open it under Approvals.`;
+      this.status = 409;
+      this.code = 'OVERRIDE_MAKES_STALE';
+    }
   }
 }
 
@@ -64,11 +72,19 @@ function createLocks({ store, dataDir }) {
 
   const lockOf = (projectId, rel) => lockedFiles(projectId).get(rel) || null;
 
-  // Throws LockedError when `user` may not write `rel` because of a pending request.
-  function assertUnlocked(user, projectId, rel) {
-    if (user && user.role === 'software_admin') return; // exempt: the override marks the request stale
+  /*
+    Throws LockedError when `user` may not write `rel` because of a pending
+    request. The administrator (writing under an override session) is
+    exempt, once they have accepted that the save makes the request stale.
+  */
+  function assertUnlocked(user, projectId, rel, { acceptStale = false } = {}) {
     const lock = lockOf(projectId, rel);
-    if (lock) throw new LockedError(lock);
+    if (!lock) return;
+    if (user && user.role === 'software_admin') {
+      if (acceptStale) return;
+      throw new LockedError(lock, { override: true });
+    }
+    throw new LockedError(lock);
   }
 
   return { lockedFiles, lockOf, assertUnlocked };

@@ -9,6 +9,7 @@ import { Alert, EmptyState, ErrorState, LoadingBlock } from '../../components/ui
 import { useToast } from '../../components/ui/Toast.jsx';
 import useResource from '../../lib/useResource.js';
 import { get, postForm } from '../../api.js';
+import { useOverrideSession } from '../../components/OverrideSession.jsx';
 import { fmtRelative } from '../../lib/format.js';
 
 function UploadDialog({ open, onClose, onDone, projectId, icn: presetIcn }) {
@@ -68,14 +69,18 @@ function UploadDialog({ open, onClose, onDone, projectId, icn: presetIcn }) {
   );
 }
 
-export default function GraphicsTab({ project, canWrite }) {
+export default function GraphicsTab({ project, canWrite: mayWrite, override = false }) {
   const toast = useToast();
+  // The administrator uploads only as an override (decisions.md V3).
+  const ov = useOverrideSession({ projectId: project.id, docKey: 'graphics', label: 'the graphics', enabled: override });
+  const canWrite = mayWrite || ov.active;
   const { data, loading, error, reload } = useResource(`/api/projects/${project.id}/graphics`);
   const [upload, setUpload] = useState(null);
   if (error) return <Card><ErrorState error={error} onRetry={reload} /></Card>;
 
   return (
     <Card>
+      {ov.bar ? <div className="m-4 mb-0">{ov.bar}</div> : null}
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-line">
         <p className="text-[13px] text-ink-3 flex-1">
           {data ? `${data.counts.total} graphic${data.counts.total === 1 ? '' : 's'} referenced or registered · ` : ''}

@@ -25,6 +25,7 @@ const { createErrorHandler } = require('./http/errors');
 const { createDocumentService } = require('./content/documents');
 const { createRealtime } = require('./realtime');
 const { createLocks } = require('./content/locks');
+const { createOverrides } = require('./overrides');
 
 const ROUTES = [
   require('./routes/auth'),
@@ -36,6 +37,7 @@ const ROUTES = [
   require('./routes/publication'),
   require('./routes/requests'),
   require('./routes/drafts'),
+  require('./routes/admin'),
   require('./routes/misc'), // last: /api 404 and the SPA fallback
 ];
 
@@ -115,7 +117,8 @@ function createServer({
   const resolvedDataDir = dataDir === ':memory:' ? path.join(require('node:os').tmpdir(), 'agastya-memory') : dataDir;
   const documents = createDocumentService({ store, dataDir: resolvedDataDir, now });
   const locks = createLocks({ store, dataDir: resolvedDataDir });
-  const ctx = { app, store, sessions, authz, audit, limiter, now, clientIp, userAgent, log, clientDist, dataDir: resolvedDataDir, documents, events, locks };
+  const overrides = createOverrides({ store, audit, now, clientIp });
+  const ctx = { app, store, sessions, authz, audit, limiter, now, clientIp, userAgent, log, clientDist, dataDir: resolvedDataDir, documents, events, locks, overrides };
   for (const r of ROUTES) r.register(ctx);
   app.use(createErrorHandler(log));
 

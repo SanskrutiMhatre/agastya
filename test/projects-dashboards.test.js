@@ -64,15 +64,19 @@ test('the owning Author adds and removes existing Authors; assigned Authors and 
   assert.equal((await a1.post('/api/users', { username: 'not.allowed', fullName: 'N A', role: 'author' })).status, 403, 'Authors still cannot create accounts');
 });
 
-test('the administrator can add and remove members, audited as an administrator action', async () => {
+test('the administrator can add and remove members, as an override with a reason (V7)', async () => {
   const cand = (await admin.get(`/api/projects/${own.id}/assignable`)).body.authors.map((x) => x.username);
   assert.ok(!cand.includes('tech.one'), 'the owner is not offered as a member');
-  assert.equal((await admin.post(`/api/projects/${own.id}/members`, { userId: a1.user.id })).body.code, 'ALREADY_OWNER');
-  assert.equal((await admin.post(`/api/projects/${own.id}/members`, { userId: a3.user.id })).status, 201);
+  const reason = 'Covering for the owner while on leave.';
+  assert.equal((await admin.post(`/api/projects/${own.id}/members`, { userId: a3.user.id })).body.code, 'OVERRIDE_REASON_REQUIRED');
+  assert.equal((await admin.post(`/api/projects/${own.id}/members`, { userId: a1.user.id, reason })).body.code, 'ALREADY_OWNER');
+  assert.equal((await admin.post(`/api/projects/${own.id}/members`, { userId: a3.user.id, reason })).status, 201);
   const meta = JSON.parse(t.store.db.prepare("SELECT meta FROM audit_log WHERE action = 'project.member.added' ORDER BY id DESC").get().meta);
   assert.equal(meta.byAdmin, true);
+  assert.ok(meta.overrideId);
   assert.equal((await a3.get(`/api/projects/${own.id}`)).status, 200, 'the assigned Author now sees it');
-  assert.equal((await admin.del(`/api/projects/${own.id}/members/${a3.user.id}`)).status, 200);
+  assert.equal((await admin.raw('DELETE', `/api/projects/${own.id}/members/${a3.user.id}`)).body.code, 'OVERRIDE_REASON_REQUIRED');
+  assert.equal((await admin.raw('DELETE', `/api/projects/${own.id}/members/${a3.user.id}`, { reason })).status, 200);
   assert.equal((await a3.get(`/api/projects/${own.id}`)).status, 404);
 });
 

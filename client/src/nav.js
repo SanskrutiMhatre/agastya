@@ -16,13 +16,14 @@ const ITEMS = {
   dataModules: { to: '/data-modules', label: 'Data modules', icon: 'file' },
   publications: { to: '/publications', label: 'Publications', icon: 'book' },
   approvals: { to: '/approvals', label: 'Approvals', icon: 'check', badge: 'approvals' },
-  audit: { to: '/audit', label: 'Audit log', icon: 'list', phase: 4 },
+  audit: { to: '/audit', label: 'Audit log', icon: 'list' },
+  health: { to: '/health', label: 'System health', icon: 'activity' },
 };
 
 const BY_ROLE = {
   software_admin: [
     { heading: 'Overview', items: ['dashboard', 'projects'] },
-    { heading: 'Administration', items: ['users', 'approvals', 'audit'] },
+    { heading: 'Administration', items: ['users', 'approvals', 'audit', 'health'] },
   ],
   project_manager: [
     { heading: 'Overview', items: ['dashboard', 'projects'] },

@@ -51,11 +51,22 @@ function ValidationErrors({ project, errors }) {
   );
 }
 
+// An administrator override (decision or reset) and its reason (decisions.md V4, V5).
+function OverrideReason({ r }) {
+  if (!r.override) return null;
+  return (
+    <p className="text-ink-2" data-testid="override-note">
+      <Badge tone="accent" icon="shield">Administrator override</Badge>{r.override.reason ? <> Reason: <span className="text-ink">“{r.override.reason}”</span></> : null}
+    </p>
+  );
+}
+
 // A decision and its comment, as shown to the submitter and the project's Authors (decisions.md M6).
 function Decision({ r }) {
-  if (!r.decidedBy) return null;
+  if (!r.decidedBy) return r.override ? <OverrideReason r={r} /> : null;
   return (
     <div className="space-y-1" data-testid="request-decision">
+      <OverrideReason r={r} />
       <p className="text-ink-2">{(REQUEST_STATUS[r.status] || {}).label} by <span className="font-medium text-ink">{r.decidedBy.name}</span>, {fmtDateTime(r.decidedAt)}</p>
       {r.decisionComment ? <blockquote className="border-l-2 border-line pl-3 text-ink whitespace-pre-wrap">{r.decisionComment}</blockquote> : null}
     </div>

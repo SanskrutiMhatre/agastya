@@ -261,7 +261,8 @@ test('another Project Manager, the administrator and Authors', async ({ browser 
   await ad.page.goto('/approvals');
   await expect(ad.page.getByRole('columnheader', { name: 'Sent to' })).toBeVisible();
   await ad.page.getByRole('row', { name: /PDU-200 Manual/ }).filter({ hasText: 'Pending approval' }).getByRole('link').click();
-  await expect(ad.page.getByTestId('decision-closed')).toContainText('override arrives in Phase 4');
+  await expect(ad.page.getByTestId('decision-closed')).toContainText('As administrator you can decide, reset or reassign it');
+  await expect(ad.page.getByTestId('admin-overrides')).toBeVisible();
   await expect(ad.page.getByTestId('decision-form')).toHaveCount(0);
   await shots(ad.page, '80-admin-review', { fullPage: false });
   await ad.page.goto('/');

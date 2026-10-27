@@ -1,6 +1,6 @@
 # Agastya architecture
 
-Agastya is an S1000D publication authoring and publishing platform. This note covers what exists after Phase 1. See `decisions.md` for the reasoning behind each choice.
+Agastya is an S1000D publication authoring and publishing platform. This note covers what exists after Phase 4. See `decisions.md` for the reasoning behind each choice.
 
 ## Runtime
 
@@ -19,7 +19,7 @@ Content will stay on disk in the S1000D project layout (`csdb/`, `Media/`, `publ
 | Path | Responsibility |
 |---|---|
 | `server/server.js` | `createServer({dataDir, env, log, now})` builds the app; `start()` listens. Middleware order: security headers, CSRF Origin check, JSON body (100 KB), routes, SPA fallback, error handler. |
-| `server/db/migrations.js` | Ordered, additive, named migrations `001` to `012` (users and sessions, resets, projects, notifications, ownership, documents and revisions, data modules, graphics, publication requests, drafts, builds and validation runs, request modules and history). |
+| `server/db/migrations.js` | Ordered, additive, named migrations `001` to `013` (users and sessions, resets, projects, notifications, ownership, documents and revisions, data modules, graphics, publication requests, drafts, builds and validation runs, request modules and history, administrator overrides and override sessions). |
 | `server/db/store.js` | Every SQL statement. Prepared statements are cached. `tx()` wraps `BEGIN IMMEDIATE`. |
 | `server/auth/crypto.js` | Argon2id or scrypt hashing, `dummyVerify`, tokens, SHA-256. |
 | `server/auth/policy.js` | Password policy, username rules, reserved names, full names, `tempPasswordFor`. |
@@ -31,7 +31,7 @@ Content will stay on disk in the S1000D project layout (`csdb/`, `Media/`, `publ
 | `server/notify.js` | Maps audit actions to notifications for the people concerned. |
 | `server/http/validate.js` | Body schemas: types, lengths, enums; unknown fields refused. |
 | `server/http/errors.js` | Uniform `{error, code}` responses and the final error handler. |
-| `server/routes/*.js` | `auth`, `users`, `resets`, `projects`, `dashboard`, `notifications`, `sessions`, `health`, `spa`. |
+| `server/routes/*.js` | `auth`, `users`, `resets`, `projects`, `dashboard`, `content`, `publication`, `requests`, `drafts`, `admin` (Phase 4), `misc` (health, notifications, SPA). `kit.js` holds the shared content helpers. |
 | `scripts/reset-admin-password.js` | Break-glass temporary password for the Software Administrator. |
 
 ## Authorization model
@@ -92,6 +92,8 @@ server/routes/content.js
 | `publication_requests` | Approval requests: publication, submitter, chosen manager, status, note, fingerprint, snapshot location, validation counts, PDF hash, stale reason, decision fields (status, `decided_by`, `decided_at`, `decision_comment`). Fingerprint and snapshot fields are immutable; rows are never deleted; one pending request per publication. (009) |
 | `drafts` | Autosaved unsaved text per user, project and source key. (010) |
 | `builds`, `validation_runs` | Build and validation outcomes per project, for the dashboards. (011) |
+| `admin_overrides` | Every administrator override: kind (decision, reset, reassign, content, members), the underlying action, project, request, target, editing session, **reason**. Append-only. (013) |
+| `override_sessions` | The administrator's content-editing sessions: document key, reason (fixed), the sign-in it belongs to, last use, end and why. (013) |
 | `request_modules` | The data modules each request froze, `(request_id, data_module_id, rel_path)`, recorded at submission; drives the status flow. `publication_requests.previous_request_id` links a request to the one before it for the same publication (the history chain). (012) |
 | `schema_migrations` | Applied migration names. |
 
@@ -152,6 +154,31 @@ Manager ─ GET  /api/requests/queue                      the chosen manager's r
 | `server/routes/dashboard.js` | The manager dashboard: pending requests and team activity (M8: owned projects, Author actions, draft flag and time, never content). |
 | `server/notify.js` | `request.submitted` (and resubmission), `request.decided`, `request.stale`, `user.disabled` (owners of the Author's other projects). |
 | `client/src/pages/approvals/` | `ApprovalsPage` (queue) and `ReviewPage` (lazy: PDF, read-only sources and revisions, validation, history, decision form). |
+
+## Software Administrator dashboard (Phase 4)
+
+```
+Admin ─ GET  /api/admin/oversight            projects, workload, who is working on what, stuck requests
+      ─ GET  /api/admin/audit[.csv]          presenter (auditView.js): allow-listed details per action
+      ─ GET  /api/admin/health               toolchain (health/toolchain.js, also npm run doctor), builds, storage, backup
+      ─ GET  /api/admin/sessions             every live session (revoke: POST /api/sessions/:id/revoke)
+      ─ POST /api/requests/:id/override-decision | override-reset | reassign   {…, reason}
+      ─ POST /api/projects/:id/members, DELETE …/members/:userId               {…, reason}
+      ─ POST /api/projects/:id/override-sessions {key, reason} ──► session id
+            then the normal write routes with  X-Agastya-Override-Session: <id>
+            (+ X-Agastya-Override-Stale: accept to save a file a pending request froze → request stale)
+every override ─► overrides.record(): admin_overrides row + audit 'admin.override' (reason, recipients) ─► notifier
+```
+
+| Path | Responsibility |
+|---|---|
+| `server/overrides.js` | Records an override (table + audit row) and names who is told; content saves under a session notify once per session. |
+| `server/auth/authz.js` | `request.override`, `content.override.start`, `override.session.end`, `draft.write`, `request.approvers`, `admin.*`; `loaders.withReason`, `loaders.withOverride` (checks the session: owner, sign-in, project, document, 30 min idle). |
+| `server/auditView.js` | The only way audit rows leave the server: allow-list per action, CSV with formula neutralising. |
+| `server/routes/admin.js` | Oversight, audit, health, sessions, override sessions. |
+| `client/src/components/OverrideDialog.jsx` | The reason dialog every override uses. |
+| `client/src/components/OverrideSession.jsx` | "Edit as administrator": the editing session, its bar, idle and leave handling, the stale confirmation. `api.js` adds the session header and retries an accepted stale save. |
+| `client/src/pages/admin/` | Audit log, System health, Sessions tab. |
 
 ## Client layout
 

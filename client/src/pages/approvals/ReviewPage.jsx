@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { Card, CardHeader, DetailList, PageHeader } from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 import { Badge, Mono } from '../../components/ui/Badge.jsx';
-import { Field, Textarea } from '../../components/ui/Field.jsx';
+import { Field, Select, Textarea } from '../../components/ui/Field.jsx';
+import OverrideDialog from '../../components/OverrideDialog.jsx';
 import Tabs, { TabPanel } from '../../components/ui/Tabs.jsx';
 import { Alert, EmptyState, ErrorState, LoadingBlock, Spinner } from '../../components/ui/States.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
@@ -67,13 +68,15 @@ export default function ReviewPage() {
           <TabPanel idBase="review" value="history" active={tab}><History history={data.history} current={r.id} /></TabPanel>
         </div>
         <div className="space-y-6">
+          {data.canOverride ? <AdminOverrides request={r} onDone={reload} onRefused={setRefused} /> : null}
+          {data.overrides && data.overrides.length ? <OverrideLog overrides={data.overrides} /> : null}
           {data.canDecide ? <DecisionForm request={r} onDone={reload} onRefused={setRefused} /> : (
             <Card>
               <CardHeader title="Decision" />
               <div className="px-5 pb-5 text-[13px] space-y-2" data-testid="decision-closed">
                 {refused ? <Alert title={refused.code === 'STALE' ? 'Not decided: the request is out of date' : 'Not decided'}>{refused.message}</Alert> : null}
                 {r.status === 'pending'
-                  ? <p className="text-ink-2">{isAdmin ? `Waiting for ${r.manager.name}. The administrator's override arrives in Phase 4.` : `Waiting for ${r.manager.name}.`}</p>
+                  ? <p className="text-ink-2">{isAdmin ? `Waiting for ${r.manager.name}. As administrator you can decide, reset or reassign it above, with a written reason.` : `Waiting for ${r.manager.name}.`}</p>
                   : <Decided request={r} />}
               </div>
             </Card>
@@ -109,11 +112,23 @@ export default function ReviewPage() {
   );
 }
 
+// An administrator override on a decision or a reset, with its reason, for the people involved (decisions.md V4, V5).
+export function OverrideNote({ request: r }) {
+  if (!r.override) return null;
+  return (
+    <div className="space-y-1" data-testid="override-note">
+      <Badge tone="accent" icon="shield">Administrator override</Badge>
+      {r.override.reason ? <p className="text-ink-2">Reason: <span className="text-ink">“{r.override.reason}”</span></p> : null}
+    </div>
+  );
+}
+
 function Decided({ request: r }) {
-  if (r.status === 'stale') return <p className="text-danger">Out of date: {r.staleReason || 'the publication changed after it was submitted'}. The Author must submit it again.</p>;
+  if (r.status === 'stale') return <><p className="text-danger">Out of date: {r.staleReason || 'the publication changed after it was submitted'}. The Author must submit it again.</p><OverrideNote request={r} /></>;
   if (r.status === 'withdrawn') return <p className="text-ink-2">The Author withdrew this request.</p>;
   return (
     <>
+      <OverrideNote request={r} />
       <p className="text-ink-2">{(REQUEST_STATUS[r.status] || {}).label} by <span className="font-medium text-ink">{r.decidedBy ? r.decidedBy.name : '—'}</span>, {fmtDateTime(r.decidedAt)}</p>
       {r.decisionComment ? <blockquote className="border-l-2 border-line pl-3 text-ink whitespace-pre-wrap" data-testid="decision-comment">{r.decisionComment}</blockquote> : null}
     </>
@@ -165,6 +180,116 @@ function DecisionForm({ request, onDone: reload, onRefused }) {
         </Field>
         <Button type="submit" variant="primary" icon="check" loading={busy} className="w-full">Record decision</Button>
       </form>
+    </Card>
+  );
+}
+
+/*
+  The administrator's overrides on a pending request (decisions.md V4-V6):
+  decide it (the real decision, with a comment for the Author and a separate
+  reason), reset it so the Authors can resubmit, or send it to another
+  Project Manager. Each asks for a written reason.
+*/
+function AdminOverrides({ request, onDone: reload, onRefused }) {
+  const toast = useToast();
+  const { refresh } = useAuth();
+  const [open, setOpen] = useState(null);
+  const [outcome, setOutcome] = useState('');
+  const [comment, setComment] = useState('');
+  const [managers, setManagers] = useState(null);
+  const [managerId, setManagerId] = useState('');
+  const done = () => { setOpen(null); reload(); refresh(); };
+  async function openReassign() {
+    setManagerId(''); setOpen('reassign');
+    try { setManagers((await get('/api/users?role=project_manager&status=active')).users.filter((u) => u.id !== request.manager.id)); } catch { setManagers([]); }
+  }
+  const refusedOr = (err) => {
+    if (err.code === 'STALE' || err.code === 'NOT_PENDING') { setOpen(null); onRefused(err); reload(); return; }
+    throw err;
+  };
+  return (
+    <Card>
+      <CardHeader title="Administrator override" subtitle={`Pending with ${request.manager.name}. Each action needs a written reason and is told to the people involved.`} />
+      <div className="px-5 pb-5 grid gap-2" data-testid="admin-overrides">
+        <Button icon="shield" onClick={() => { setOutcome(''); setComment(''); setOpen('decide'); }}>Decide as administrator</Button>
+        <Button icon="users" onClick={openReassign}>Reassign to another manager</Button>
+        <Button variant="danger-ghost" icon="undo" onClick={() => setOpen('reset')}>Reset so the Authors can resubmit</Button>
+      </div>
+
+      <OverrideDialog open={open === 'decide'} onClose={() => setOpen(null)} title="Decide as administrator" confirmLabel="Record decision"
+        description="This is the real decision on the frozen snapshot, labelled as an administrator override." valid={!!outcome && !!comment.trim()}
+        people={`${request.submittedBy.name}, the project's Authors and ${request.manager.name}`}
+        onSubmit={async (reason) => {
+          if (!outcome) throw new Error('Choose a decision.');
+          if (!comment.trim()) throw new Error('Write a comment for the Author.');
+          try {
+            await post(`/api/requests/${request.id}/override-decision`, { outcome, comment: comment.trim(), reason });
+            toast.success('Decision recorded as an override', `${request.submittedBy.name} and ${request.manager.name} have been told.`);
+            done();
+          } catch (err) { refusedOr(err); }
+        }}>
+        <fieldset className="space-y-2">
+          <legend className="text-[13px] font-medium text-ink-2 mb-1.5">Decision</legend>
+          {OUTCOMES.map(([value, label, hint]) => (
+            <label key={value} className={`flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer text-[13px] ${outcome === value ? 'border-accent bg-accent-soft/40' : 'border-line hover:bg-surface-2'}`}>
+              <input type="radio" name="override-outcome" value={value} checked={outcome === value} onChange={() => setOutcome(value)} className="mt-0.5" />
+              <span><span className="font-medium text-ink">{label}</span><span className="block text-ink-3">{hint}</span></span>
+            </label>
+          ))}
+        </fieldset>
+        <Field label="Comment for the Author" required hint="What the Author reads, as with a manager's comment. Only its length is recorded in the audit log.">
+          {(p) => <Textarea {...p} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={4000} rows={4} />}
+        </Field>
+      </OverrideDialog>
+
+      <OverrideDialog open={open === 'reassign'} onClose={() => setOpen(null)} title="Reassign the request" confirmLabel="Reassign" valid={!!managerId}
+        description={`${request.manager.name} will no longer see this request; the new manager reviews the same frozen snapshot.`}
+        people={`${request.submittedBy.name}, ${request.manager.name} and the new manager`}
+        onSubmit={async (reason) => {
+          if (!managerId) throw new Error('Choose a Project Manager.');
+          try {
+            await post(`/api/requests/${request.id}/reassign`, { managerId, reason });
+            toast.success('Request reassigned');
+            done();
+          } catch (err) { refusedOr(err); }
+        }}>
+        <Field label="Send to" required>
+          {(p) => (
+            <Select {...p} value={managerId} onChange={(e) => setManagerId(e.target.value)} disabled={!managers}>
+              <option value="">{managers ? (managers.length ? 'Choose a Project Manager…' : 'No other active Project Manager') : 'Loading…'}</option>
+              {(managers || []).map((m) => <option key={m.id} value={m.id}>{m.fullName} ({m.username})</option>)}
+            </Select>
+          )}
+        </Field>
+      </OverrideDialog>
+
+      <OverrideDialog open={open === 'reset'} onClose={() => setOpen(null)} title="Reset the request" confirmLabel="Reset request" tone="danger"
+        description="The request becomes out of date without a decision. The publication unlocks, its modules return to draft, and the Authors can edit and submit again."
+        people={`${request.submittedBy.name}, the project's Authors and ${request.manager.name}`}
+        onSubmit={async (reason) => {
+          try {
+            await post(`/api/requests/${request.id}/override-reset`, { reason });
+            toast.success('Request reset', 'The Authors can submit again.');
+            done();
+          } catch (err) { refusedOr(err); }
+        }} />
+    </Card>
+  );
+}
+
+function OverrideLog({ overrides }) {
+  const LABEL = { decision: 'Decided as an override', reset: 'Reset', reassign: 'Reassigned' };
+  return (
+    <Card>
+      <CardHeader title="Overrides" subtitle="Administrator actions on this request" />
+      <ul className="px-5 pb-5 space-y-2 text-[13px]" data-testid="override-log">
+        {overrides.map((o) => (
+          <li key={o.id} className="rounded-md border border-line p-2.5">
+            <p className="text-ink-2"><span className="font-medium text-ink">{LABEL[o.kind] || o.kind}</span> by {o.by}, {fmtDateTime(o.at)}</p>
+            <p className="text-ink-2">Reason: <span className="text-ink">“{o.reason}”</span></p>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
@@ -320,6 +445,7 @@ export function History({ history, current }) {
               {h.id === current ? <Badge tone="accent">This request</Badge> : null}
             </div>
             {h.note ? <p className="mt-1.5 text-ink-2">Author note: “{h.note}”</p> : null}
+            {h.override ? <div className="mt-1.5"><OverrideNote request={h} /></div> : null}
             {h.decidedBy ? <p className="mt-1.5 text-ink-2">{(REQUEST_STATUS[h.status] || {}).label} by <span className="font-medium text-ink">{h.decidedBy.name}</span>, {fmtDateTime(h.decidedAt)}</p> : null}
             {h.decisionComment ? <blockquote className="mt-1.5 border-l-2 border-line pl-3 text-ink whitespace-pre-wrap" data-testid="history-comment">{h.decisionComment}</blockquote> : null}
             {h.commentHidden ? <p className="mt-1.5 text-ink-3 italic">The comment is visible to the project's Authors and the deciding manager only.</p> : null}

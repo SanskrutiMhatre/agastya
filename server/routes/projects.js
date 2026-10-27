@@ -31,7 +31,7 @@ const memberOut = (m) => ({
   addedBy: m.added_by_username || null, status: m.disabled_at ? 'disabled' : m.onboarding_pending ? 'pending' : 'active',
 });
 
-function register({ app, store, authz, audit, now, clientIp, documents }) {
+function register({ app, store, authz, audit, now, clientIp, documents, overrides }) {
   const { can } = authz;
   const nowIso = () => now().toISOString();
 
@@ -85,12 +85,15 @@ function register({ app, store, authz, audit, now, clientIp, documents }) {
           assign: evaluate(me, 'project.assign', req.ctx).ok,
           write: evaluate(me, 'content.write', req.ctx).ok,
           build: evaluate(me, 'content.build', req.ctx).ok,
+          drafts: evaluate(me, 'draft.write', req.ctx).ok,
+          // The administrator may edit as an override, one document at a time, with a reason (decisions.md V3).
+          override: me.role === ADMIN,
         },
       });
     });
 
   app.get('/api/projects/:id/assignable',
-    can('project.assign', loaders.project),
+    can('project.assign.list', loaders.project),
     (req, res) => {
       res.json({
         authors: store.listAssignableAuthors(req.ctx.project.id).map((u) => ({
@@ -99,9 +102,19 @@ function register({ app, store, authz, audit, now, clientIp, documents }) {
       });
     });
 
+  // For the administrator, assigning and removing are overrides with a written reason (V7).
+  const REASON = { type: 'string', max: 1000, label: 'Reason' };
+  function memberOverride(req, project, author, action) {
+    if (req.auth.user.role !== ADMIN) return null;
+    return overrides.record(req, {
+      kind: 'members', action, projectId: project.id, targetType: 'user', targetId: author.id, reason: req.valid.reason,
+      recipients: [author.id, project.owner_id], meta: { projectName: project.name, username: author.username, added: action === 'project.member.added' },
+    });
+  }
+
   app.post('/api/projects/:id/members',
-    can('project.assign', loaders.project),
-    body({ userId: { type: 'string', required: true, max: 64 } }),
+    can('project.assign', loaders.withReason(loaders.project)),
+    body({ userId: { type: 'string', required: true, max: 64 }, reason: REASON }),
     (req, res) => {
       const me = req.auth.user;
       const { project } = req.ctx;
@@ -115,23 +128,25 @@ function register({ app, store, authz, audit, now, clientIp, documents }) {
       if (!store.addMember(project.id, author.id, me.id, nowIso())) {
         return sendError(res, 409, 'ALREADY_ASSIGNED', 'That Author is already assigned to this project.');
       }
+      const overrideId = memberOverride(req, project, author, 'project.member.added');
       audit({ actorId: me.id, actorUsername: me.username, ip: clientIp(req), action: 'project.member.added',
         targetType: 'user', targetId: author.id, projectId: project.id,
-        meta: { projectName: project.name, username: author.username, byAdmin: me.role === ADMIN || undefined } });
+        meta: { projectName: project.name, username: author.username, byAdmin: me.role === ADMIN || undefined, overrideId: overrideId || undefined } });
       res.status(201).json({ ok: true, authors: store.listMembers(project.id).map(memberOut) });
     });
 
   app.delete('/api/projects/:id/members/:userId',
-    can('project.assign', loaders.project),
-    body({}),
+    can('project.assign', loaders.withReason(loaders.project)),
+    body({ reason: REASON }),
     (req, res) => {
       const me = req.auth.user;
       const { project } = req.ctx;
       const author = store.getUser(req.params.userId);
       if (!author || !store.removeMember(project.id, author.id)) return sendError(res, 404, 'NOT_FOUND', 'Not found.');
+      const overrideId = memberOverride(req, project, author, 'project.member.removed');
       audit({ actorId: me.id, actorUsername: me.username, ip: clientIp(req), action: 'project.member.removed',
         targetType: 'user', targetId: author.id, projectId: project.id,
-        meta: { projectName: project.name, username: author.username, byAdmin: me.role === ADMIN || undefined } });
+        meta: { projectName: project.name, username: author.username, byAdmin: me.role === ADMIN || undefined, overrideId: overrideId || undefined } });
       res.json({ ok: true, authors: store.listMembers(project.id).map(memberOut) });
     });
 }

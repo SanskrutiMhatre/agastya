@@ -66,7 +66,7 @@ export default function Sidebar({ onNavigate }) {
         ))}
       </div>
       <div className="px-5 py-4 border-t border-white/5">
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-nav-ink/60">Phase 3 · Approvals</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-nav-ink/60">Phase 4 · Administration</p>
       </div>
     </nav>
   );

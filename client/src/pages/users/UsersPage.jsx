@@ -11,6 +11,7 @@ import SecretReveal from '../../components/ui/SecretReveal.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import CreateUserDialog from './CreateUserDialog.jsx';
 import ResetRequests from './ResetRequests.jsx';
+import SessionsTab from '../admin/SessionsTab.jsx';
 import useResource from '../../lib/useResource.js';
 import { useAuth } from '../../auth.jsx';
 import { fmtDate, fmtRelative } from '../../lib/format.js';
@@ -21,7 +22,7 @@ export default function UsersPage() {
   const toast = useToast();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') === 'resets' ? 'resets' : 'accounts';
+  const tab = ['resets', 'sessions'].includes(params.get('tab')) && (params.get('tab') !== 'sessions' || isAdmin) ? params.get('tab') : 'accounts';
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
@@ -53,12 +54,12 @@ export default function UsersPage() {
       <PageHeader
         eyebrow={isAdmin ? 'Administration' : 'Team'}
         title={isAdmin ? 'Users' : 'Authors'}
-        subtitle={isAdmin ? 'Every account in Agastya. You create Project Managers and Authors.' : 'Author accounts you created. You can reset their passwords.'}
+        subtitle={isAdmin ? 'Every account in Agastya. You create Project Managers and Authors, disable and enable them, issue temporary passwords and end sessions.' : 'Author accounts you created. You can reset their passwords.'}
         actions={<Button variant="primary" icon="plus" onClick={() => setCreating(true)}>{isAdmin ? 'Create user' : 'Create Author'}</Button>}
       />
 
-      <Tabs idBase="users" value={tab} onChange={(v) => setParams(v === 'resets' ? { tab: 'resets' } : {})}
-        tabs={[{ value: 'accounts', label: 'Accounts' }, { value: 'resets', label: 'Reset requests', count: pendingCount }]} />
+      <Tabs idBase="users" value={tab} onChange={(v) => setParams(v === 'accounts' ? {} : { tab: v })}
+        tabs={[{ value: 'accounts', label: 'Accounts' }, { value: 'resets', label: 'Reset requests', count: pendingCount }, ...(isAdmin ? [{ value: 'sessions', label: 'Sessions' }] : [])]} />
 
       <TabPanel idBase="users" value="accounts" active={tab}>
         <Card>
@@ -120,6 +121,8 @@ export default function UsersPage() {
               )}
         </Card>
       </TabPanel>
+
+      {isAdmin ? <TabPanel idBase="users" value="sessions" active={tab}><SessionsTab /></TabPanel> : null}
 
       <TabPanel idBase="users" value="resets" active={tab}>
         <ResetRequests resource={resets} isAdmin={isAdmin} onChanged={() => { users.reload(); refresh(); }} />

@@ -1,8 +1,12 @@
 'use strict';
 // Notifications derived from audit actions. Each mapping names who should
 // hear about an event; the audit row is the single source, so no route has
-// to remember to notify anyone. Later phases add submission, decision and
-// admin-override mappings here.
+// to remember to notify anyone.
+//
+// Administrator overrides (decisions.md V1-V8) are told through one mapping,
+// 'admin.override', to the people the override module names, always with the
+// written reason. The underlying events of an override (a decision, a member
+// change, a reset) then send nothing of their own, so nobody hears twice.
 
 function createNotifier({ store, now = () => new Date() }) {
   const at = () => now().toISOString();
@@ -28,12 +32,12 @@ function createNotifier({ store, now = () => new Date() }) {
       body: 'If this was not you, contact your Project Manager or the Software Administrator.', link: null,
       refType: 'user', refId: r.actorId,
     }],
-    'project.member.added': (r) => [{
+    'project.member.added': (r) => !(r.meta && r.meta.overrideId) && [{
       userId: r.targetId, kind: 'project', title: `Assigned to ${r.meta.projectName}`,
       body: `${r.actorUsername} added you to this project.`, link: `/projects/${r.projectId}`,
       refType: 'project', refId: r.projectId,
     }],
-    'project.member.removed': (r) => [{
+    'project.member.removed': (r) => !(r.meta && r.meta.overrideId) && [{
       userId: r.targetId, kind: 'project', title: `Removed from ${r.meta.projectName}`,
       body: `${r.actorUsername} removed you from this project.`, link: null,
       refType: 'project', refId: r.projectId,
@@ -54,7 +58,7 @@ function createNotifier({ store, now = () => new Date() }) {
       refType: 'request', refId: r.targetId,
     }],
     // Phase 3: every decision, to the Author who submitted (decisions.md M9).
-    'request.decided': (r) => r.meta && [{
+    'request.decided': (r) => r.meta && !r.meta.overrideId && [{
       userId: r.meta.authorId, kind: 'request',
       title: `${{ approved: 'Approved', rejected: 'Rejected', changes_requested: 'Changes requested' }[r.meta.outcome] || 'Decided'}: ${r.meta.title || r.meta.projectName}`,
       body: `${r.meta.managerName || r.actorUsername} ${{ approved: 'approved', rejected: 'rejected', changes_requested: 'requested changes to' }[r.meta.outcome] || 'decided'} ${r.meta.projectName}. Open the project to read the comment.`,
@@ -77,12 +81,48 @@ function createNotifier({ store, now = () => new Date() }) {
       body: `${r.meta.authorName || r.actorUsername} withdrew the approval request.`, link: null,
       refType: 'request', refId: r.targetId,
     }],
-    'request.stale': (r) => r.meta && [r.meta.authorId, r.meta.managerId].filter(Boolean).map((userId) => ({
+    'request.stale': (r) => r.meta && r.meta.cause !== 'admin.reset' && [r.meta.authorId, r.meta.managerId].filter(Boolean).map((userId) => ({
       userId, kind: 'request', title: `Request out of date: ${r.meta.projectName}`,
       body: 'The publication changed after it was submitted, so the request is stale and must be submitted again.',
       link: userId === r.meta.authorId ? `/projects/${r.projectId}?tab=publication` : null,
       refType: 'request', refId: r.targetId,
     })),
+    // Every administrator override, to the people it affects, with its reason (V2, V8).
+    'admin.override': (r) => {
+      const m = r.meta;
+      if (!m || !Array.isArray(m.recipients) || !m.recipients.length) return null;
+      const name = m.title || m.projectName || 'a publication';
+      const why = ` Reason: ${m.reason}`;
+      const outcome = { approved: 'approved', rejected: 'rejected', changes_requested: 'requested changes to' }[m.outcome] || 'decided';
+      return m.recipients.map((userId) => {
+        const isManager = userId === m.toId || userId === m.fromId || (m.kind !== 'reassign' && store.getUser(userId) && store.getUser(userId).role === 'project_manager');
+        const projectLink = isManager ? null : `/projects/${r.projectId}${m.kind === 'members' || m.kind === 'content' ? '' : '?tab=publication'}`;
+        const base = { userId, kind: 'override', refType: m.requestId ? 'request' : 'project', refId: m.requestId || r.projectId };
+        switch (m.kind) {
+          case 'decision':
+            return { ...base, title: `Decided by the administrator: ${name}`, body: `The Software Administrator ${outcome} ${m.projectName} as an override.${why}`, link: isManager ? `/approvals/${m.requestId}` : projectLink };
+          case 'reset':
+            return { ...base, title: `Request reset by the administrator: ${m.projectName}`, body: `The request is out of date; the publication is unlocked and can be submitted again.${why}`, link: isManager ? `/approvals/${m.requestId}` : projectLink };
+          case 'reassign':
+            return {
+              ...base, title: userId === m.toId ? `Approval requested (reassigned): ${name}` : `Request reassigned: ${m.projectName}`,
+              body: `The Software Administrator moved the request from ${m.fromName} to ${m.toName}.${why}`,
+              link: userId === m.fromId ? null : userId === m.toId ? `/approvals/${m.requestId}` : projectLink,
+            };
+          case 'members':
+            return { ...base, title: `${m.added ? 'Assigned to' : 'Removed from'} ${m.projectName} by the administrator`, body: `${m.added ? 'You were added to' : 'Removed from'} this project${m.username ? ` (${m.username})` : ''} as an override.${why}`, link: m.added ? `/projects/${r.projectId}` : null };
+          case 'content':
+          {
+            // A pending request's manager who is not on the project is told, but gets no link into it (W2).
+            const p = store.getProject(r.projectId);
+            const onProject = p && (p.owner_id === userId || store.getMembership(p.id, userId));
+            return { ...base, title: `Edited by the administrator: ${m.projectName}`, body: `The Software Administrator is editing ${m.target ? m.target : 'this project'} as an override. Each save is recorded.${why}`, link: onProject ? `/projects/${r.projectId}` : null };
+          }
+          default:
+            return null;
+        }
+      }).filter(Boolean);
+    },
     // Oversight: the administrator hears when a Project Manager creates an Author.
     'user.created': (r) => {
       if (!r.meta || r.meta.creatorRole !== 'project_manager') return null;

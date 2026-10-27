@@ -96,10 +96,16 @@ test('unauthenticated requests are denied on every guarded route', async () => {
 test('there is no authentication-bypass switch in the code', () => {
   const dir = path.join(__dirname, '..', 'server');
   const src = [];
+  const spawning = [];
   (function walk(d) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
-      if (e.isDirectory()) walk(p); else if (p.endsWith('.js')) src.push(fs.readFileSync(p, 'utf8'));
+      if (e.isDirectory()) walk(p);
+      else if (p.endsWith('.js')) {
+        const text = fs.readFileSync(p, 'utf8');
+        src.push(text);
+        if (/child_process/.test(text)) spawning.push({ rel: path.relative(dir, p).split(path.sep).join('/'), text });
+      }
     }
   })(dir);
   const all = src.join('\n');
@@ -107,7 +113,13 @@ test('there is no authentication-bypass switch in the code', () => {
   assert.deepEqual([...envNames].sort(), ['AGASTYA_DATA_DIR', 'AGASTYA_INITIAL_ADMIN_PASSWORD', 'AGASTYA_INITIAL_ADMIN_USERNAME', 'AGASTYA_SECURE_COOKIES', 'AGASTYA_TRUST_PROXY', 'HOST', 'PORT'],
     'every environment switch the server reads; none may weaken authentication');
   assert.ok(!/AUTH_DISABLED|SKIP_AUTH|NO_AUTH|MASTER_PASSWORD/i.test(all));
-  assert.ok(!/child_process/.test(all), 'Phase 1 runs no external processes');
+  // The only process the server itself starts is the health screen's toolchain check (V11), with execFile and argument arrays.
+  assert.deepEqual(spawning.map((f) => f.rel), ['health/toolchain.js'], 'the server starts external processes only for the toolchain checks');
+  for (const f of spawning) {
+    const imports = [...f.text.matchAll(/const \{([^}]*)\} = require\('node:child_process'\)/g)].map((m) => m[1].trim());
+    assert.deepEqual(imports, ['execFile'], `${f.rel}: imports execFile only from child_process`);
+    assert.ok(!/shell\s*:\s*true/.test(f.text), `${f.rel}: never a shell`);
+  }
 });
 
 test('audit metadata drops anything that looks like a secret', () => {

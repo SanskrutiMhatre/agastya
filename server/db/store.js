@@ -478,9 +478,9 @@ class Store {
 
   getRequest(id) {
     return this.stmt(`SELECT r.*, p.name AS project_name, s.full_name AS submitted_by_name, s.username AS submitted_by_username,
-        m.full_name AS manager_name, m.username AS manager_username, d.full_name AS decided_by_name
+        m.full_name AS manager_name, m.username AS manager_username, d.full_name AS decided_by_name, ob.full_name AS override_by_name
       FROM publication_requests r JOIN projects p ON p.id = r.project_id
-      JOIN users s ON s.id = r.submitted_by JOIN users m ON m.id = r.assigned_manager_id LEFT JOIN users d ON d.id = r.decided_by
+      JOIN users s ON s.id = r.submitted_by JOIN users m ON m.id = r.assigned_manager_id LEFT JOIN users d ON d.id = r.decided_by LEFT JOIN users ob ON ob.id = r.override_by
       WHERE r.id = ?`).get(String(id)) || null;
   }
 
@@ -499,9 +499,9 @@ class Store {
     if (submittedBy) { where.push('r.submitted_by = ?'); args.push(submittedBy); }
     if (managerId) { where.push('r.assigned_manager_id = ?'); args.push(managerId); }
     const order = pendingFirst ? "(r.status = 'pending') DESC, r.submitted_at DESC, r.id" : 'r.submitted_at DESC, r.id';
-    return this.db.prepare(`SELECT r.*, p.name AS project_name, s.full_name AS submitted_by_name, m.full_name AS manager_name, d.full_name AS decided_by_name
+    return this.db.prepare(`SELECT r.*, p.name AS project_name, s.full_name AS submitted_by_name, m.full_name AS manager_name, d.full_name AS decided_by_name, ob.full_name AS override_by_name
       FROM publication_requests r JOIN projects p ON p.id = r.project_id
-      JOIN users s ON s.id = r.submitted_by JOIN users m ON m.id = r.assigned_manager_id LEFT JOIN users d ON d.id = r.decided_by
+      JOIN users s ON s.id = r.submitted_by JOIN users m ON m.id = r.assigned_manager_id LEFT JOIN users d ON d.id = r.decided_by LEFT JOIN users ob ON ob.id = r.override_by
       ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY ${order} LIMIT ?`).all(...args, limit);
   }
 
@@ -523,9 +523,9 @@ class Store {
 
   // Every request for one publication, oldest first: its history (decisions.md M5).
   listRequestsForPublication(projectId, publicationRef) {
-    return this.stmt(`SELECT r.*, p.name AS project_name, s.full_name AS submitted_by_name, m.full_name AS manager_name, d.full_name AS decided_by_name
+    return this.stmt(`SELECT r.*, p.name AS project_name, s.full_name AS submitted_by_name, m.full_name AS manager_name, d.full_name AS decided_by_name, ob.full_name AS override_by_name
       FROM publication_requests r JOIN projects p ON p.id = r.project_id
-      JOIN users s ON s.id = r.submitted_by JOIN users m ON m.id = r.assigned_manager_id LEFT JOIN users d ON d.id = r.decided_by
+      JOIN users s ON s.id = r.submitted_by JOIN users m ON m.id = r.assigned_manager_id LEFT JOIN users d ON d.id = r.decided_by LEFT JOIN users ob ON ob.id = r.override_by
       WHERE r.project_id = ? AND r.publication_ref = ? ORDER BY r.submitted_at, r.rowid`).all(projectId, publicationRef);
   }
 
@@ -614,6 +614,156 @@ class Store {
 
   lastValidation(projectId) {
     return this.stmt('SELECT * FROM validation_runs WHERE project_id = ? ORDER BY id DESC LIMIT 1').get(projectId) || null;
+  }
+
+  // ---- Phase 4: overrides, override sessions, audit viewer, oversight ------
+
+  addOverride({ id, at, adminId, kind, action, projectId = null, requestId = null, targetType = null, targetId = null, sessionId = null, reason }) {
+    this.stmt(`INSERT INTO admin_overrides (id, at, admin_id, kind, action, project_id, request_id, target_type, target_id, session_id, reason)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(id, at, adminId, kind, action, projectId, requestId, targetType, targetId, sessionId, reason);
+  }
+
+  listOverridesForRequest(requestId) {
+    return this.stmt(`SELECT o.*, u.full_name AS admin_name FROM admin_overrides o JOIN users u ON u.id = o.admin_id
+      WHERE o.request_id = ? ORDER BY o.at, o.rowid`).all(requestId);
+  }
+
+  createOverrideSession({ id, adminId, authSessionId, projectId, docKey, reason, now }) {
+    this.stmt(`INSERT INTO override_sessions (id, admin_id, auth_session_id, project_id, doc_key, reason, started_at, last_used_at)
+      VALUES (?,?,?,?,?,?,?,?)`).run(id, adminId, authSessionId, projectId, docKey, reason, now, now);
+    return this.getOverrideSession(id);
+  }
+
+  getOverrideSession(id) {
+    return this.stmt('SELECT * FROM override_sessions WHERE id = ?').get(String(id)) || null;
+  }
+
+  touchOverrideSession(id, now) {
+    this.stmt('UPDATE override_sessions SET last_used_at = ?, saves = saves + 1 WHERE id = ? AND ended_at IS NULL').run(now, id);
+  }
+
+  endOverrideSession(id, reason, now) {
+    return Number(this.stmt('UPDATE override_sessions SET ended_at = ?, end_reason = ? WHERE id = ? AND ended_at IS NULL').run(now, reason, id).changes);
+  }
+
+  // Close the administrator's other open sessions on the same document (a new reason replaces the old one).
+  endOverrideSessionsFor(adminId, projectId, docKey, reason, now) {
+    return Number(this.stmt(`UPDATE override_sessions SET ended_at = ?, end_reason = ?
+      WHERE admin_id = ? AND project_id = ? AND doc_key = ? AND ended_at IS NULL`).run(now, reason, adminId, projectId, docKey).changes);
+  }
+
+  // The audit viewer. Filters are optional; keyset paging on id (newest first).
+  listAudit({ actorId = null, action = null, actionPrefix = null, projectId = null, fromIso = null, toIso = null, beforeId = null, limit = 100 } = {}) {
+    const { where, args } = this.auditWhere({ actorId, action, actionPrefix, projectId, fromIso, toIso });
+    if (beforeId) { where.push('a.id < ?'); args.push(beforeId); }
+    return this.db.prepare(`SELECT a.*, u.full_name AS actor_name, u.role AS actor_role, p.name AS project_name
+      FROM audit_log a LEFT JOIN users u ON u.id = a.actor_id LEFT JOIN projects p ON p.id = a.project_id
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY a.id DESC LIMIT ?`).all(...args, limit);
+  }
+
+  // The same rows for export, one at a time (no full result in memory).
+  *iterateAudit(filters = {}, limit = 50000) {
+    const { where, args } = this.auditWhere(filters);
+    const it = this.db.prepare(`SELECT a.*, u.full_name AS actor_name, u.role AS actor_role, p.name AS project_name
+      FROM audit_log a LEFT JOIN users u ON u.id = a.actor_id LEFT JOIN projects p ON p.id = a.project_id
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY a.id DESC LIMIT ?`).iterate(...args, limit);
+    for (const row of it) yield row;
+  }
+
+  auditWhere({ actorId = null, action = null, actionPrefix = null, projectId = null, fromIso = null, toIso = null }) {
+    const where = [], args = [];
+    if (actorId) { where.push('a.actor_id = ?'); args.push(actorId); }
+    if (action) { where.push('a.action = ?'); args.push(action); }
+    if (actionPrefix) { where.push("a.action LIKE ? ESCAPE '\\'"); args.push(`${actionPrefix.replace(/[%_\\]/g, '\\$&')}%`); }
+    if (projectId) { where.push('a.project_id = ?'); args.push(projectId); }
+    if (fromIso) { where.push('a.at >= ?'); args.push(fromIso); }
+    if (toIso) { where.push('a.at < ?'); args.push(toIso); }
+    return { where, args };
+  }
+
+  auditActions() {
+    return this.stmt('SELECT action, COUNT(*) AS n FROM audit_log GROUP BY action ORDER BY action').all();
+  }
+
+  // Every live session, with its account (the administrator's session list).
+  listLiveSessions(now) {
+    return this.stmt(`SELECT s.id, s.user_id, s.created_at, s.expires_at, s.last_seen_at, s.ip, s.user_agent,
+        u.username, u.full_name, u.role
+      FROM sessions s JOIN users u ON u.id = s.user_id
+      WHERE s.revoked_at IS NULL AND s.expires_at > ? AND u.disabled_at IS NULL ORDER BY s.last_seen_at DESC`).all(now);
+  }
+
+  // Reassign a pending request to another Project Manager (decisions.md V6). Returns rows changed.
+  reassignRequest(id, managerId, now) {
+    return Number(this.stmt("UPDATE publication_requests SET assigned_manager_id = ?, updated_at = ? WHERE id = ? AND status = 'pending'")
+      .run(managerId, now, id).changes);
+  }
+
+  // An administrator's override decision: the real decision, labelled with who overrode and why.
+  overrideDecideRequest(id, status, adminId, comment, reason, now) {
+    return Number(this.stmt(`UPDATE publication_requests SET status = ?, decided_by = ?, decided_at = ?, decision_comment = ?,
+        override_by = ?, override_reason = ?, updated_at = ? WHERE id = ? AND status = 'pending'`)
+      .run(status, adminId, now, comment, adminId, reason, now, id).changes);
+  }
+
+  // A reset by the administrator: the request is made stale with their reason.
+  overrideResetRequest(id, adminId, reason, staleReason, now) {
+    return Number(this.stmt(`UPDATE publication_requests SET status = 'stale', stale_reason = ?, override_by = ?, override_reason = ?, updated_at = ?
+      WHERE id = ? AND status = 'pending'`).run(staleReason, adminId, reason, now, id).changes);
+  }
+
+  // Per Project Manager: queue size, oldest pending, decisions in a window.
+  managerWorkload(sinceIso) {
+    return this.stmt(`SELECT u.id, u.username, u.full_name, u.disabled_at, u.onboarding_pending,
+        (SELECT COUNT(*) FROM publication_requests r WHERE r.assigned_manager_id = u.id AND r.status = 'pending') AS pending,
+        (SELECT MIN(r.submitted_at) FROM publication_requests r WHERE r.assigned_manager_id = u.id AND r.status = 'pending') AS oldest_pending,
+        (SELECT COUNT(*) FROM publication_requests r WHERE r.decided_by = u.id AND r.decided_at >= ?) AS decided_recent,
+        (SELECT COUNT(*) FROM projects p WHERE p.owner_id = u.id) AS owned,
+        (SELECT COUNT(*) FROM users a WHERE a.created_by = u.id) AS authors_created
+      FROM users u WHERE u.role = 'project_manager' ORDER BY u.full_name`).all(sinceIso);
+  }
+
+  // Per Author: projects, modules by status they created or last saved, drafts, last content action.
+  authorWorkload() {
+    return this.stmt(`SELECT u.id, u.username, u.full_name, u.disabled_at, u.onboarding_pending,
+        (SELECT COUNT(*) FROM projects p WHERE p.owner_id = u.id) AS owned,
+        (SELECT COUNT(*) FROM project_members m WHERE m.user_id = u.id) AS assigned,
+        (SELECT COUNT(*) FROM data_modules dm WHERE dm.deleted_at IS NULL AND dm.updated_by = u.id AND dm.status = 'draft') AS dm_draft,
+        (SELECT COUNT(*) FROM data_modules dm WHERE dm.deleted_at IS NULL AND dm.updated_by = u.id AND dm.status = 'in_review') AS dm_in_review,
+        (SELECT COUNT(*) FROM data_modules dm WHERE dm.deleted_at IS NULL AND dm.updated_by = u.id AND dm.status = 'approved') AS dm_approved,
+        (SELECT COUNT(*) FROM drafts d WHERE d.user_id = u.id) AS drafts,
+        (SELECT COUNT(*) FROM publication_requests r WHERE r.submitted_by = u.id AND r.status = 'pending') AS pending,
+        (SELECT MAX(a.at) FROM audit_log a WHERE a.actor_id = u.id AND (a.action LIKE 'dm.%' OR a.action LIKE 'publication.%' OR a.action LIKE 'graphic.%' OR a.action LIKE 'request.%')) AS last_action_at
+      FROM users u WHERE u.role = 'author' ORDER BY u.full_name`).all();
+  }
+
+  // Pending requests addressed to a Project Manager whose account is disabled (nobody can decide them).
+  listStuckRequests() {
+    return this.stmt(`SELECT r.id, r.project_id, r.publication_title, r.submitted_at, p.name AS project_name,
+        m.id AS manager_id, m.full_name AS manager_name, s.full_name AS submitted_by_name
+      FROM publication_requests r JOIN users m ON m.id = r.assigned_manager_id JOIN projects p ON p.id = r.project_id
+      JOIN users s ON s.id = r.submitted_by
+      WHERE r.status = 'pending' AND m.disabled_at IS NOT NULL ORDER BY r.submitted_at`).all();
+  }
+
+  lastActivityPerProject() {
+    return this.stmt(`SELECT a.project_id, MAX(a.at) AS at FROM audit_log a WHERE a.project_id IS NOT NULL GROUP BY a.project_id`).all();
+  }
+
+  dataModuleCountsByProject() {
+    return this.stmt(`SELECT project_id, status, COUNT(*) AS n FROM data_modules WHERE deleted_at IS NULL GROUP BY project_id, status`).all();
+  }
+
+  listRecentBuilds(limit = 20) {
+    return this.stmt(`SELECT b.*, u.full_name AS user_name, p.name AS project_name FROM builds b
+      LEFT JOIN users u ON u.id = b.user_id LEFT JOIN projects p ON p.id = b.project_id ORDER BY b.id DESC LIMIT ?`).all(limit);
+  }
+
+  dbStats() {
+    const page = this.db.prepare('PRAGMA page_size').get();
+    const count = this.db.prepare('PRAGMA page_count').get();
+    const free = this.db.prepare('PRAGMA freelist_count').get();
+    return { pageSize: Number(page.page_size), pageCount: Number(count.page_count), freePages: Number(free.freelist_count) };
   }
 
   // ---- notifications ------------------------------------------------------

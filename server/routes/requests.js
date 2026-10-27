@@ -16,6 +16,9 @@
     GET  /api/requests/:reqId/revisions/:revId    one of those revisions
     POST /api/requests/:reqId/decision            the chosen manager: approve | reject | changes, with a comment
     POST /api/requests/:reqId/withdraw            the submitting Author, while pending
+    POST /api/requests/:reqId/override-decision   the administrator: a real decision, with a comment and a reason (V4)
+    POST /api/requests/:reqId/override-reset      the administrator: make it stale so the Authors can resubmit (V5)
+    POST /api/requests/:reqId/reassign            the administrator: send it to another Project Manager (V6)
 
   Submission refuses a publication with validation errors or no modules, and
   one that changes while it is being built. The chosen Project Manager reads
@@ -28,7 +31,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { loaders } = require('../auth/authz');
+const { loaders, REASON_MAX } = require('../auth/authz');
 const { body } = require('../http/validate');
 const { sendError } = require('../http/errors');
 const { defaultApproverFor } = require('../auth/accounts');
@@ -55,13 +58,15 @@ function requestOut(r, { comments = true } = {}) {
     decidedBy: r.decided_by ? { id: r.decided_by, name: r.decided_by_name || null } : null,
     decisionComment: comments ? r.decision_comment || null : null,
     commentHidden: !comments && !!r.decision_comment,
+    // An administrator override (decide or reset), with its reason, shown to the same people as the comment (V4, V5).
+    override: r.override_by ? { by: { id: r.override_by, name: r.override_by_name || null }, reason: comments ? r.override_reason || null : null } : null,
     previousRequestId: r.previous_request_id || null,
     snapshotPdf: `/api/requests/${r.id}/snapshot.pdf`,
   };
 }
 
 function register(ctx) {
-  const { app, store, authz, audit, events, documents, dataDir, log, now, clientIp } = ctx;
+  const { app, store, authz, audit, events, documents, dataDir, log, now, clientIp, overrides } = ctx;
   const { can, requireAuth } = authz;
   const { me, nowIso, dirOf, content } = createKit(ctx);
   const builds = createBuildRunner({ store, events, log, now });
@@ -90,7 +95,7 @@ function register(ctx) {
   const REL = { type: 'string', required: true, max: 300, pattern: /^[A-Za-z0-9._\/-]+$/, label: 'File' };
 
   app.get('/api/projects/:id/approvers',
-    can('content.write', loaders.project),
+    can('request.approvers', loaders.project),
     (req, res) => {
       const managers = store.listUsers({ role: 'project_manager', status: 'active' });
       const fallback = defaultApproverFor(store, store.getUser(me(req).id));
@@ -212,6 +217,9 @@ function register(ctx) {
       res.json({
         request: requestOut(r, { comments: seesComments(user, r) }), files, modules, history,
         canDecide: authz.evaluate(user, 'request.decide', { request: r }).ok && r.status === 'pending',
+        canOverride: user.role === 'software_admin' && r.status === 'pending',
+        // Every override on this request (decision, reset, reassignment), with its reason, for the people involved (V2).
+        overrides: seesComments(user, r) ? store.listOverridesForRequest(r.id).map((o) => ({ id: o.id, kind: o.kind, at: o.at, by: o.admin_name, reason: o.reason })) : [],
       });
     });
 
@@ -266,42 +274,122 @@ function register(ctx) {
     });
 
   /*
-    The decision (M2): only the chosen manager, only on a pending request,
-    with a comment. The live content is fingerprinted again first: if it no
-    longer matches the snapshot, nothing is decided and the request is stale.
+    The decision (M2): only on a pending request, with a comment. The live
+    content is fingerprinted again first: if it no longer matches the
+    snapshot, nothing is decided and the request is stale. The chosen
+    manager decides through /decision; the administrator's override
+    (/override-decision, V4) is the same decision, labelled, with a reason.
   */
+  function decide(req, res, { override = null } = {}) {
+    const r = req.ctx.request;
+    if (r.status !== 'pending') return sendError(res, 409, 'NOT_PENDING', 'This request has already been decided, withdrawn or made stale.');
+    const project = store.getProject(r.project_id);
+    const live = project ? reqs.liveFingerprint(documents.workspaceFor(project), store.listDataModules(project.id)) : null;
+    if (live !== r.content_fingerprint) {
+      if (store.setRequestStatus(r.id, 'stale', nowIso(), { staleReason: 'the publication changed after it was submitted (found when deciding)' })) {
+        workflow.applyRequestEvent(store, dataDir, store.getRequest(r.id), 'stale');
+        audit({
+          actorId: me(req).id, actorUsername: me(req).username, ip: clientIp(req), projectId: r.project_id, action: 'request.stale', targetType: 'request', targetId: r.id,
+          meta: { managerId: r.assigned_manager_id, authorId: r.submitted_by, projectName: r.project_name, cause: 'decision.fingerprint' },
+        });
+        announce(r.project_id, 'request.stale', r, me(req));
+      }
+      return res.status(409).json({ error: 'The publication changed after it was submitted, so it cannot be decided. The request is now out of date; the Author must submit it again.', code: 'STALE', request: requestOut(store.getRequest(r.id)) });
+    }
+    const status = OUTCOMES[req.valid.outcome];
+    const changed = override
+      ? store.overrideDecideRequest(r.id, status, me(req).id, req.valid.comment, override.reason, nowIso())
+      : store.decideRequest(r.id, status, me(req).id, req.valid.comment, nowIso());
+    if (!changed) return sendError(res, 409, 'NOT_PENDING', 'This request has already been decided.');
+    const decided = store.getRequest(r.id);
+    const moved = workflow.applyRequestEvent(store, dataDir, decided, status);
+    let overrideId = null;
+    if (override) {
+      // The comment is the Author's to read; only its length is recorded. The reason is recorded (V2).
+      overrideId = overrides.record(req, {
+        kind: 'decision', action: 'request.decided', projectId: r.project_id, requestId: r.id, reason: override.reason,
+        recipients: [r.submitted_by, r.assigned_manager_id],
+        meta: { outcome: status, commentLength: req.valid.comment.length, projectName: r.project_name, title: r.publication_title, managerName: r.manager_name },
+      });
+    }
+    audit({
+      actorId: me(req).id, actorUsername: me(req).username, ip: clientIp(req), projectId: r.project_id, action: 'request.decided', targetType: 'request', targetId: r.id,
+      meta: {
+        outcome: status, commentLength: req.valid.comment.length, fingerprint: r.content_fingerprint, authorId: r.submitted_by,
+        projectName: r.project_name, title: r.publication_title, managerName: me(req).fullName, modulesMoved: moved.length,
+        ...(overrideId ? { overrideId, override: true } : {}),
+      },
+    });
+    announce(r.project_id, 'request.decided', decided, me(req));
+    res.json({ request: requestOut(decided), modules: moved });
+  }
+
+  const DECISION_BODY = { outcome: { type: 'string', required: true, enum: Object.keys(OUTCOMES), label: 'Decision' }, comment: { type: 'string', required: true, min: 1, max: 4000, label: 'Comment' } };
+  const REASON = { type: 'string', required: true, max: REASON_MAX, label: 'Reason' };
+
   app.post('/api/requests/:reqId/decision',
     can('request.decide', loaders.publicationRequest),
-    body({ outcome: { type: 'string', required: true, enum: Object.keys(OUTCOMES), label: 'Decision' }, comment: { type: 'string', required: true, min: 1, max: 4000, label: 'Comment' } }),
+    body(DECISION_BODY),
+    (req, res) => decide(req, res));
+
+  app.post('/api/requests/:reqId/override-decision',
+    can('request.override', loaders.withReason(loaders.publicationRequest)),
+    body({ ...DECISION_BODY, reason: REASON }),
+    (req, res) => decide(req, res, { override: { reason: req.valid.reason } }));
+
+  /*
+    Reset (V5): the administrator ends a pending request without deciding
+    it. It becomes stale with their reason, the lock lifts, the modules
+    return to draft, and the Authors can submit again.
+  */
+  app.post('/api/requests/:reqId/override-reset',
+    can('request.override', loaders.withReason(loaders.publicationRequest)),
+    body({ reason: REASON }),
     (req, res) => {
       const r = req.ctx.request;
-      if (r.status !== 'pending') return sendError(res, 409, 'NOT_PENDING', 'This request has already been decided, withdrawn or made stale.');
-      const project = store.getProject(r.project_id);
-      const live = project ? reqs.liveFingerprint(documents.workspaceFor(project), store.listDataModules(project.id)) : null;
-      if (live !== r.content_fingerprint) {
-        if (store.setRequestStatus(r.id, 'stale', nowIso(), { staleReason: 'the publication changed after it was submitted (found when deciding)' })) {
-          workflow.applyRequestEvent(store, dataDir, store.getRequest(r.id), 'stale');
-          audit({
-            actorId: me(req).id, actorUsername: me(req).username, ip: clientIp(req), projectId: r.project_id, action: 'request.stale', targetType: 'request', targetId: r.id,
-            meta: { managerId: r.assigned_manager_id, authorId: r.submitted_by, projectName: r.project_name, cause: 'decision.fingerprint' },
-          });
-          announce(r.project_id, 'request.stale', r, me(req));
-        }
-        return res.status(409).json({ error: 'The publication changed after it was submitted, so it cannot be decided. The request is now out of date; the Author must submit it again.', code: 'STALE', request: requestOut(store.getRequest(r.id)) });
-      }
-      const status = OUTCOMES[req.valid.outcome];
-      if (!store.decideRequest(r.id, status, me(req).id, req.valid.comment, nowIso())) return sendError(res, 409, 'NOT_PENDING', 'This request has already been decided.');
-      const decided = store.getRequest(r.id);
-      const moved = workflow.applyRequestEvent(store, dataDir, decided, status);
-      audit({
-        actorId: me(req).id, actorUsername: me(req).username, ip: clientIp(req), projectId: r.project_id, action: 'request.decided', targetType: 'request', targetId: r.id,
-        meta: {
-          outcome: status, commentLength: req.valid.comment.length, fingerprint: r.content_fingerprint, authorId: r.submitted_by,
-          projectName: r.project_name, title: r.publication_title, managerName: me(req).fullName, modulesMoved: moved.length,
-        },
+      const reason = req.valid.reason;
+      const staleReason = `reset by the administrator: ${reason}`;
+      if (!store.overrideResetRequest(r.id, me(req).id, reason, staleReason, nowIso())) return sendError(res, 409, 'NOT_PENDING', 'Only a pending request can be reset.');
+      const updated = store.getRequest(r.id);
+      workflow.applyRequestEvent(store, dataDir, updated, 'stale');
+      const overrideId = overrides.record(req, {
+        kind: 'reset', action: 'request.stale', projectId: r.project_id, requestId: r.id, reason,
+        recipients: [r.submitted_by, r.assigned_manager_id], meta: { projectName: r.project_name, title: r.publication_title, managerName: r.manager_name },
       });
-      announce(r.project_id, 'request.decided', decided, me(req));
-      res.json({ request: requestOut(decided), modules: moved });
+      audit({
+        actorId: me(req).id, actorUsername: me(req).username, ip: clientIp(req), projectId: r.project_id, action: 'request.stale', targetType: 'request', targetId: r.id,
+        meta: { managerId: r.assigned_manager_id, authorId: r.submitted_by, projectName: r.project_name, cause: 'admin.reset', overrideId },
+      });
+      announce(r.project_id, 'request.stale', updated, me(req));
+      res.json({ request: requestOut(updated) });
+    });
+
+  /*
+    Reassign (V6): a pending request goes to another active Project Manager.
+    The previous manager loses sight of it (request.read follows the
+    assignment); all three people are told.
+  */
+  app.post('/api/requests/:reqId/reassign',
+    can('request.override', loaders.withReason(loaders.publicationRequest)),
+    body({ managerId: { type: 'string', required: true, max: 64, label: 'Project Manager' }, reason: REASON }),
+    (req, res) => {
+      const r = req.ctx.request;
+      const to = store.getUser(req.valid.managerId);
+      if (!to || to.role !== 'project_manager' || to.disabled_at) return sendError(res, 400, 'APPROVER_INVALID', 'Choose an active Project Manager to send the request to.');
+      if (to.id === r.assigned_manager_id) return sendError(res, 409, 'SAME_MANAGER', 'The request is already with that Project Manager.');
+      if (!store.reassignRequest(r.id, to.id, nowIso())) return sendError(res, 409, 'NOT_PENDING', 'Only a pending request can be reassigned.');
+      const meta = { projectName: r.project_name, title: r.publication_title, fromId: r.assigned_manager_id, fromName: r.manager_name, toId: to.id, toName: to.full_name };
+      const overrideId = overrides.record(req, {
+        kind: 'reassign', action: 'request.reassigned', projectId: r.project_id, requestId: r.id, reason: req.valid.reason,
+        recipients: [r.submitted_by, r.assigned_manager_id, to.id], meta,
+      });
+      audit({
+        actorId: me(req).id, actorUsername: me(req).username, ip: clientIp(req), projectId: r.project_id, action: 'request.reassigned', targetType: 'request', targetId: r.id,
+        meta: { ...meta, overrideId },
+      });
+      const updated = store.getRequest(r.id);
+      announce(r.project_id, 'request.reassigned', updated, me(req));
+      res.json({ request: requestOut(updated) });
     });
 
   app.get('/api/requests/:reqId/snapshot.pdf',
@@ -348,12 +436,18 @@ function register(ctx) {
     const live = reqs.liveFingerprint(dir, store.listDataModules(project.id));
     for (const r of pending) {
       if (live === r.content_fingerprint) continue;
-      const reason = `${e.action.replace(/[._]/g, ' ')}${e.by ? ` by ${e.by}` : ''}`;
-      if (!store.setRequestStatus(r.id, 'stale', nowIso(), { staleReason: reason.slice(0, 200) })) continue;
+      // An administrator's override edit names itself and its reason (decisions.md V5).
+      const reason = e.override
+        ? `edited by the administrator (override): ${e.override.reason}`
+        : `${e.action.replace(/[._]/g, ' ')}${e.by ? ` by ${e.by}` : ''}`.slice(0, 200);
+      if (!store.setRequestStatus(r.id, 'stale', nowIso(), { staleReason: reason })) continue;
       workflow.applyRequestEvent(store, dataDir, store.getRequest(r.id), 'stale');
       audit({
         actorId: e.byId || null, actorUsername: null, projectId: project.id, action: 'request.stale', targetType: 'request', targetId: r.id,
-        meta: { managerId: r.assigned_manager_id, authorId: r.submitted_by, projectName: project.name, cause: e.action },
+        meta: {
+          managerId: r.assigned_manager_id, authorId: r.submitted_by, projectName: project.name,
+          cause: e.override ? 'admin.override' : e.action, ...(e.override ? { overrideId: e.override.id, via: e.action } : {}),
+        },
       });
       announce(project.id, 'request.stale', r, null);
     }

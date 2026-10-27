@@ -17,10 +17,10 @@ const crypto = require('node:crypto');
 const multer = require('multer');
 const { loaders } = require('../auth/authz');
 const { writeFileAtomic } = require('../content/workspace');
-const { LockedError } = require('../content/locks');
+const { createKit } = require('./kit');
 const workflow = require('../content/workflow');
 const { body, query, validateObject } = require('../http/validate');
-const { handle, sendError } = require('../http/errors');
+const { sendError } = require('../http/errors');
 const { ContentError, assertWritableXml } = require('../content/xmlcheck');
 const dmcLib = require('../content/dmc');
 const { renderShell, listShells, SCHEMA_TYPES } = require('../content/shells');
@@ -70,38 +70,30 @@ function dmOut(m) {
 
 const revOut = (r) => ({ id: r.id, reason: r.reason, createdAt: r.created_at, by: r.created_by_name || r.created_by_username || null, size: r.size, hash: r.hash });
 
-function register({ app, store, authz, audit, now, clientIp, log, dataDir, documents, events, locks }) {
+function register(ctx) {
+  const { app, store, authz, now, log, events, documents, locks } = ctx;
   const { can } = authz;
-  const nowIso = () => now().toISOString();
-  const me = (req) => req.auth.user;
+  // Auditing (with the administrator's overrides), the workspace and the error wrapper are shared (kit.js).
+  const { me, nowIso, dirOf, auditContent, content, unlockOpts } = createKit(ctx);
   const builds = createBuildRunner({ store, events, log, now });
-  // Every content change is audited and announced on the hub (WebSocket, request stale check).
-  const auditContent = (req, action, extra = {}) => {
-    audit({ actorId: me(req).id, actorUsername: me(req).username, ip: clientIp(req), projectId: req.ctx.project.id, ...extra, action });
-    events.emit('content', {
-      projectId: req.ctx.project.id, action, docId: extra.targetId || null,
-      revision: (extra.meta && extra.meta.revision) || null, by: me(req).fullName, byId: me(req).id, at: nowIso(),
-    });
-  };
 
-  // Content errors become their status and code; anything else is the 500 handler's.
-  const content = (fn) => handle(async (req, res, next) => {
-    try { await fn(req, res, next); } catch (e) {
-      if (e instanceof ContentError) {
-        return res.status(e.status).json({ error: e.message, code: e.code, line: e.line, conflict: e.conflict });
-      }
-      if (e instanceof LockedError) return res.status(423).json({ error: e.message, code: e.code, lock: e.lock });
-      if (e instanceof pdf.BuildError) {
-        return res.status(422).json({ error: `The PDF build failed: ${e.message}`, code: e.code, hint: e.hint, file: e.file, line: e.line });
-      }
-      throw e;
-    }
-  });
-
-  const dirOf = (req) => documents.workspaceFor(req.ctx.project);
   // The content lock (decisions.md L1): the locked files of a project, and the guard on writes.
   const lockedOf = (req) => locks.lockedFiles(req.ctx.project.id);
-  const assertUnlocked = (req, rel) => locks.assertUnlocked(me(req), req.ctx.project.id, rel);
+  const assertUnlocked = (req, rel) => locks.assertUnlocked(me(req), req.ctx.project.id, rel, unlockOpts(req));
+  /*
+    Write guards. The administrator writes only inside an override session
+    for the document being changed (decisions.md V3): a module's own text is
+    its own document; creating, importing, deleting and restoring modules is
+    the module list; the publication module and its wording are one; uploads
+    are the graphics list.
+  */
+  const W = {
+    modules: loaders.withOverride(loaders.project, () => 'modules'),
+    moduleList: loaders.withOverride(loaders.dataModule, () => 'modules'),
+    module: loaders.withOverride(loaders.dataModule, (req) => `dm-${req.params.dmId}`),
+    publication: loaders.withOverride(loaders.project, () => 'publication'),
+    graphics: loaders.withOverride(loaders.project, () => 'graphics'),
+  };
   const needDm = (req, res) => {
     if (!req.ctx.dm) { sendError(res, 404, 'NOT_FOUND', 'Not found.'); return null; }
     return req.ctx.dm;
@@ -160,7 +152,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
     }));
 
   app.post('/api/projects/:id/dms',
-    can('content.write', loaders.project),
+    can('content.write', W.modules),
     body({
       dmc: { type: 'object', required: true },
       techName: { type: 'string', required: true, max: 200, label: 'Technical name' },
@@ -196,7 +188,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
 
   // Import a single XML data module, sent as text.
   app.post('/api/projects/:id/dms/import',
-    can('content.write', loaders.project),
+    can('content.write', W.modules),
     body({ filename: { type: 'string', max: 200 }, content: { type: 'password', required: true, max: 8 * 1024 * 1024 } }),
     content(async (req, res) => {
       const { dm, revision } = await createModule(req, req.valid.content, `Imported${req.valid.filename ? ` from ${path.basename(req.valid.filename).slice(0, 120)}` : ''}`);
@@ -220,7 +212,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
 
   // Save. Conflict detection is revision-based: 409 if baseRevision is stale.
   app.put('/api/projects/:id/dms/:dmId',
-    can('content.write', loaders.dataModule),
+    can('content.write', W.module),
     body({ xml: { type: 'password', required: true, max: 8 * 1024 * 1024 }, baseRevision: { type: 'integer', required: true, min: 1 } }),
     content(async (req, res) => {
       const dm = needDm(req, res); if (!dm) return;
@@ -255,7 +247,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
 
   // Soft delete: the file moves to .deleted/ (never built); record and history are kept.
   app.delete('/api/projects/:id/dms/:dmId',
-    can('content.write', loaders.dataModule),
+    can('content.write', W.moduleList),
     body({}),
     content(async (req, res) => {
       const dm = needDm(req, res); if (!dm) return;
@@ -270,7 +262,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
     }));
 
   app.post('/api/projects/:id/dms/:dmId/restore',
-    can('content.write', loaders.dataModule),
+    can('content.write', W.moduleList),
     body({}),
     content(async (req, res) => {
       const dm = needDm(req, res); if (!dm) return;
@@ -344,7 +336,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
     planning ahead); validation and the build report them as errors.
   */
   app.put('/api/projects/:id/publication',
-    can('content.write', loaders.project),
+    can('content.write', W.publication),
     query({ allowEmpty: { type: 'string', enum: ['0', '1', 'true', 'false'] } }),
     body({ xml: { type: 'password', required: true, max: 8 * 1024 * 1024 }, baseRevision: { type: 'integer', required: true, min: 1 } }),
     content(async (req, res) => {
@@ -400,7 +392,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
     }));
 
   app.put('/api/projects/:id/settings/wording',
-    can('content.write', loaders.project),
+    can('content.write', W.publication),
     body(Object.fromEntries(Object.entries(WORDING).map(([k, w]) => [k, { type: 'string', max: 200, pattern: /^[^\u0000-\u001f\u007f]*$/, label: w.label }]))),
     content(async (req, res) => {
       assertUnlocked(req, 'project.json'); // the build settings of a submitted publication are frozen with it
@@ -520,7 +512,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
     }));
 
   app.post('/api/projects/:id/graphics',
-    can('content.write', loaders.project),
+    can('content.write', W.graphics),
     upload(graphics.MAX_GRAPHIC_BYTES),
     content(async (req, res) => {
       const fields = validateObject({ icn: { type: 'string', max: 90 }, title: { type: 'string', max: 200 } }, req.body || {});
@@ -597,7 +589,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
   }
 
   app.post('/api/projects/:id/dmrl/preview',
-    can('content.write', loaders.project),
+    can('content.write', W.modules),
     upload(10 * 1024 * 1024),
     content(async (req, res) => {
       const fields = validateObject(DMRL_FIELDS, req.body || {});
@@ -612,7 +604,7 @@ function register({ app, store, authz, audit, now, clientIp, log, dataDir, docum
     }));
 
   app.post('/api/projects/:id/dmrl/import',
-    can('content.write', loaders.project),
+    can('content.write', W.modules),
     upload(10 * 1024 * 1024),
     content(async (req, res) => {
       const fields = validateObject({ ...DMRL_FIELDS, rows: { type: 'string', max: 20000, pattern: /^\d+(,\d+)*$/ } }, req.body || {});

@@ -1,6 +1,6 @@
 'use strict';
 /*
-  END-TO-END SECURITY REGRESSION (Phase 1, extended through Phase 3).
+  END-TO-END SECURITY REGRESSION (Phase 1, extended through Phase 4).
 
   Starts the REAL server (node server/server.js) as a child process with its
   own throwaway data directory and an OS-assigned port, drives it over HTTP
@@ -173,7 +173,7 @@ async function main() {
     eq((await pm2.get(`/api/projects/${ownProj.id}`)).status, 404, 'another manager cannot see it');
     eq((await author.post(`/api/projects/${ownProj.id}/members`, { userId: arjunId })).body.code, 'ALREADY_OWNER', 'the owning Author manages members, but cannot add themselves');
     eq((await pm.post(`/api/projects/${ownProj.id}/members`, { userId: arjunId })).status, 404, 'a manager cannot assign to a project they cannot see');
-    eq((await admin.post(`/api/projects/${ownProj.id}/members`, { userId: arjunId })).body.code, 'ALREADY_OWNER', 'the owner is not added as a member');
+    eq((await admin.post(`/api/projects/${ownProj.id}/members`, { userId: arjunId, reason: 'Checking the owner rule as an override.' })).body.code, 'ALREADY_OWNER', 'the owner is not added as a member');
     eq((await admin.post('/api/projects', { name: 'Admin Project' })).status, 403, 'the administrator does not create projects');
 
     // ---- content (checkpoint 2a) ---------------------------------------------
@@ -327,6 +327,37 @@ async function main() {
     const brute = client(base);
     for (let i = 0; i < 10; i++) await brute.post('/api/auth/login', { username: 'priya', password: `wrong-${i}-pass` }, { 'x-forwarded-for': `203.0.113.${i}` });
     eq((await brute.post('/api/auth/login', { username: 'priya', password: 'Marigold-River-7' })).status, 429, '11th attempt is limited, even with the right password and a spoofed XFF');
+
+    // ---- Phase 4: administrator screens and overrides -----------------------
+    const writer = client(base);
+    eq((await writer.post('/api/auth/login', { username: 'arjun', password: 'Tangerine-Harbour-3' })).status, 200, 'the Author signs in again');
+    const ADMIN_GETS = ['/api/admin/oversight', '/api/admin/audit', '/api/admin/audit/actions', '/api/admin/audit.csv', '/api/admin/health', '/api/admin/sessions'];
+    for (const u of ADMIN_GETS) {
+      eq((await pm.get(u)).status, 403, `a Project Manager cannot read ${u}`);
+      eq((await writer.get(u)).status, 403, `an Author cannot read ${u}`);
+      eq((await anon.get(u)).status, 401, `anonymous cannot read ${u}`);
+    }
+    const why = 'Security regression: checking the override rules.';
+    for (const [c, who] of [[pm, 'a Project Manager'], [writer, 'an Author']]) {
+      eq((await c.post(`/api/requests/${dreq.id}/override-decision`, { outcome: 'approve', comment: 'x', reason: why })).status, 403, `${who} cannot decide as an override`);
+      eq((await c.post(`/api/requests/${dreq.id}/override-reset`, { reason: why })).status, 403, `${who} cannot reset a request`);
+      eq((await c.post(`/api/requests/${dreq.id}/reassign`, { managerId: pmId, reason: why })).status, 403, `${who} cannot reassign a request`);
+      eq((await c.post(`/api/projects/${ownProj.id}/override-sessions`, { key: 'modules', reason: why })).status, 403, `${who} cannot open an override session`);
+    }
+    eq((await admin.post(`/api/requests/${dreq.id}/override-decision`, { outcome: 'approve', comment: 'x' })).body.code, 'OVERRIDE_REASON_REQUIRED', 'an override needs a written reason');
+    eq((await admin.post(`/api/projects/${ownProj.id}/requests`, { approverId: pmId })).status, 403, 'the administrator cannot submit a publication request');
+    eq((await admin.post(`/api/projects/${ownProj.id}/dms`, { dmc: { ...DMC, infoCode: '042' }, techName: 'x', schemaType: 'descript' }, { 'x-agastya-override-session': '00000000-0000-0000-0000-000000000000' })).body.code, 'OVERRIDE_SESSION_ENDED', 'a forged override session is refused');
+    eq((await writer.post(`/api/projects/${ownProj.id}/dms`, { dmc: { ...DMC, infoCode: '043' }, techName: 'x', schemaType: 'descript' }, { 'x-agastya-override-session': 'x' })).body.code, 'OVERRIDE_NOT_ALLOWED', 'an Author cannot send an override session');
+    // A password typed into the username box of a failed sign-in is not kept (V9).
+    await client(base).post('/api/auth/login', { username: 'Lantern-Fjord-58', password: 'nothing-here-1' });
+    const csvRes = await admin.get('/api/admin/audit.csv');
+    eq(csvRes.status, 200, 'the administrator exports the audit log');
+    for (const s of [...SECRETS, ...TOKENS]) ok(!csvRes.text.includes(s), `the audit export contains a credential (${s.slice(0, 4)}...)`);
+    ok(!/\$argon2|\$scrypt\$/.test(csvRes.text), 'no hashes in the audit export');
+    ok(!csvRes.text.includes(DECISION_COMMENT), 'decision comments are not in the audit export');
+    ok(/commentLength=/.test(csvRes.text), 'the export records comment lengths only');
+    const view = await admin.get('/api/admin/audit?limit=200');
+    for (const s of [...SECRETS, ...TOKENS, DECISION_COMMENT]) ok(!view.text.includes(s), `the audit viewer shows a secret (${s.slice(0, 4)}...)`);
 
     // ---- sign-out ------------------------------------------------------------
     eq((await pm2.post('/api/auth/logout')).status, 200, 'sign-out');

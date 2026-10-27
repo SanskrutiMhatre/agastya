@@ -13,7 +13,9 @@ import UsersPage from './pages/users/UsersPage.jsx';
 import UserDetail from './pages/users/UserDetail.jsx';
 import ProjectsPage from './pages/projects/ProjectsPage.jsx';
 import ProjectDetail from './pages/projects/ProjectDetail.jsx';
-import { AuditPlaceholder, NotFound } from './pages/Placeholders.jsx';
+import { NotFound } from './pages/Placeholders.jsx';
+import AuditPage from './pages/admin/AuditPage.jsx';
+import HealthPage from './pages/admin/HealthPage.jsx';
 import ApprovalsPage from './pages/approvals/ApprovalsPage.jsx';
 import MyPublications from './pages/projects/MyPublications.jsx';
 import MyDataModules from './pages/dms/MyDataModules.jsx';
@@ -55,7 +57,8 @@ export default function App() {
               <Route path="users/:id" element={<RequireRole roles={[ADMIN, PM]}><UserDetail /></RequireRole>} />
               <Route path="approvals" element={<RequireRole roles={[ADMIN, PM]}><ApprovalsPage /></RequireRole>} />
               <Route path="approvals/:reqId" element={<RequireRole roles={[ADMIN, PM]}><Suspense fallback={<FullPageSpinner />}><ReviewPage /></Suspense></RequireRole>} />
-              <Route path="audit" element={<RequireRole roles={[ADMIN]}><AuditPlaceholder /></RequireRole>} />
+              <Route path="audit" element={<RequireRole roles={[ADMIN]}><AuditPage /></RequireRole>} />
+              <Route path="health" element={<RequireRole roles={[ADMIN]}><HealthPage /></RequireRole>} />
               <Route path="data-modules" element={<RequireRole roles={[AUTHOR]}><MyDataModules /></RequireRole>} />
               <Route path="publications" element={<RequireRole roles={[AUTHOR]}><MyPublications /></RequireRole>} />
               <Route path="*" element={<NotFound />} />

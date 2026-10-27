@@ -12,6 +12,7 @@ import BuildLog from '../../components/BuildLog.jsx';
 import PdfFrame from '../../components/PdfFrame.jsx';
 import useLive, { useBuildLog } from '../../lib/useLive.js';
 import { useAuth } from '../../auth.jsx';
+import { useOverrideSession } from '../../components/OverrideSession.jsx';
 import { LockBanner } from '../../components/LockBanner.jsx';
 import { fmtDateTime, fmtRelative } from '../../lib/format.js';
 import StructuredEditor, { Inspector } from '../../editor/StructuredEditor.jsx';
@@ -89,15 +90,22 @@ export default function DmEditor() {
   const draftTimer = useRef(null);
   const { me } = useAuth();
   const draftUrl = `/api/projects/${id}/drafts/dm-${dmId}`;
+  // The administrator edits a module only inside an override session with a reason (decisions.md V3).
+  const ov = useOverrideSession({
+    projectId: id, docKey: `dm-${dmId}`, label: 'this data module',
+    enabled: !!(state.perms && state.perms.override) && !(state.module && state.module.deletedAt),
+  });
+  const readOnly = state.loading || !state.perms || state.serverReadOnly || !(state.perms.write || ov.active) || (!!state.lock && !ov.active);
+  const keepsDrafts = !!(state.perms && state.perms.drafts);
 
   const load = useCallback(async () => {
     setState({ loading: true });
     try {
       const [p, d] = await Promise.all([get(`/api/projects/${id}`), get(`/api/projects/${id}/dms/${dmId}`)]);
-      setState({ loading: false, project: p.project, perms: p.permissions, module: d.module, readOnly: !!d.readOnly || !p.permissions.write || !!d.lock, lock: d.lock || null, revBy: d.revisionBy, revAt: d.revisionAt });
+      setState({ loading: false, project: p.project, perms: p.permissions, module: d.module, serverReadOnly: !!d.readOnly, lock: d.lock || null, revBy: d.revisionBy, revAt: d.revisionAt });
       setXml(d.xml); setSaved(d.xml); setBase(d.revision); setValidation(null); setRevisions(null); setNewer(null); setDraftSavedAt(null);
       setSelected(null); setHistory({ undo: [], redo: [] });
-      if (p.permissions.write && !d.readOnly) {
+      if (p.permissions.drafts && !d.readOnly) {
         try { const dr = (await get(`/api/projects/${id}/drafts/dm-${dmId}`)).draft; setDraft(dr && dr.content !== d.xml ? dr : null); } catch { setDraft(null); }
       } else setDraft(null);
     } catch (e) { setState({ loading: false, error: e }); }
@@ -126,13 +134,13 @@ export default function DmEditor() {
   const dirty = xml !== saved;
   // Autosave unsaved work as this user's draft, two seconds after the last keystroke.
   useEffect(() => {
-    if (state.readOnly || !dirty || !base) return undefined;
+    if (readOnly || !keepsDrafts || !dirty || !base) return undefined;
     clearTimeout(draftTimer.current);
     draftTimer.current = setTimeout(() => {
       put(draftUrl, { content: xml, baseRevision: base }).then((r) => setDraftSavedAt(r.savedAt)).catch(() => { /* retried on the next change */ });
     }, 2000);
     return () => clearTimeout(draftTimer.current);
-  }, [xml, dirty, base, state.readOnly, draftUrl]);
+  }, [xml, dirty, base, readOnly, keepsDrafts, draftUrl]);
   useEffect(() => {
     if (!dirty) return undefined;
     const warn = (e) => { e.preventDefault(); e.returnValue = ''; };
@@ -141,7 +149,7 @@ export default function DmEditor() {
   }, [dirty]);
 
   const save = useCallback(async () => {
-    if (state.readOnly || !dirty || busy) return;
+    if (readOnly || !dirty || busy) return;
     setBusy('save'); setSaveError(null);
     savingRef.current = true;
     try {
@@ -153,12 +161,16 @@ export default function DmEditor() {
       setRevisions(null);
       toast.success('Saved', 'A new revision was recorded.');
     } catch (e) {
-      if (e.code === 'CONFLICT') setConflict(e.body.conflict);
-      else setSaveError(e);
+      if (e.code === 'CONFLICT') {
+        // The refused text is kept as the user's draft now, not when the autosave timer would have fired (decisions.md B11).
+        clearTimeout(draftTimer.current);
+        if (keepsDrafts) await put(draftUrl, { content: xml, baseRevision: base }).catch(() => { /* the conflict dialog still offers to copy it */ });
+        setConflict(e.body.conflict);
+      } else setSaveError(e);
     }
     savingRef.current = false;
     setBusy(null);
-  }, [state.readOnly, dirty, busy, id, dmId, xml, base, toast]);
+  }, [readOnly, dirty, busy, id, dmId, xml, base, toast, keepsDrafts, draftUrl]);
 
   useEffect(() => {
     const onKey = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } };
@@ -248,11 +260,11 @@ export default function DmEditor() {
           <Button icon="list" onClick={openRevisions}>History</Button>
           <Button icon="checkCircle" onClick={validate} loading={busy === 'validate'}>Validate</Button>
           <Button icon="book" onClick={buildPreview} loading={busy === 'preview'} disabled={!!m.deletedAt}>Preview PDF</Button>
-          {!state.readOnly ? <Button variant="primary" icon="check" onClick={save} loading={busy === 'save'} disabled={!dirty}>{dirty ? 'Save' : 'Saved'}</Button> : null}
+          {!readOnly ? <Button variant="primary" icon="check" onClick={save} loading={busy === 'save'} disabled={!dirty}>{dirty ? 'Save' : 'Saved'}</Button> : null}
         </div>
       </header>
 
-      {draft && !state.readOnly ? (
+      {draft && !readOnly ? (
         <Alert tone="info" className="mb-4" title="You have an unsaved draft of this module">
           Autosaved {fmtRelative(draft.updatedAt)}{draft.baseRevision && draft.baseRevision !== base ? `, from revision ${draft.baseRevision} (the module has been saved since; check before you save)` : ''}.
           <div className="mt-2 flex gap-2">
@@ -267,8 +279,9 @@ export default function DmEditor() {
           <div className="mt-2"><Button size="sm" icon="refresh" onClick={load}>Load the latest version</Button></div>
         </Alert>
       ) : null}
-      {state.lock ? <LockBanner lock={state.lock} what="This data module" className="mb-4" /> : null}
-      {state.readOnly && !state.lock ? <Alert tone="info" className="mb-4">{m.deletedAt ? 'This data module is deleted. Restore it from the list to edit it.' : 'You can read this data module but not edit it.'}</Alert> : null}
+      {ov.bar ? <div className="mb-4">{ov.bar}</div> : null}
+      {state.lock ? <LockBanner lock={state.lock} override={ov.active} what="This data module" className="mb-4" /> : null}
+      {readOnly && !state.lock && !(state.perms && state.perms.override && !m.deletedAt) ? <Alert tone="info" className="mb-4">{m.deletedAt ? 'This data module is deleted. Restore it from the list to edit it.' : 'You can read this data module but not edit it.'}</Alert> : null}
       {saveError ? <Alert className="mb-4" title="Not saved">{saveError.message}{saveError.body && saveError.body.line ? ' ' : ''}{saveError.body && saveError.body.line ? <button type="button" className="underline" onClick={() => jump(saveError.body.line)}>Go to line {saveError.body.line}</button> : null}</Alert> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
@@ -284,7 +297,7 @@ export default function DmEditor() {
               {view !== 'xml' ? (
                 <>
                   <label className="flex items-center gap-1.5 text-ink-2"><input type="checkbox" checked={showTags} onChange={(e) => setShowTags(e.target.checked)} />Tags</label>
-                  {!state.readOnly ? (
+                  {!readOnly ? (
                     <>
                       <Button size="sm" variant="ghost" icon="undo" onClick={undo} disabled={!history.undo.length} aria-label="Undo the last structured edit">Undo</Button>
                       <Button size="sm" variant="ghost" onClick={redo} disabled={!history.redo.length} aria-label="Redo">Redo</Button>
@@ -298,14 +311,14 @@ export default function DmEditor() {
           <div className={view === 'split' ? 'grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-line' : ''}>
             {view !== 'xml' ? (
               <div className="h-[62vh] min-h-80 overflow-auto bg-surface">
-                <StructuredEditor xml={xml} onChange={structuredChange} readOnly={state.readOnly} model={model}
+                <StructuredEditor xml={xml} onChange={structuredChange} readOnly={readOnly} model={model}
                   selected={selected} onSelect={setSelected} showTags={showTags} problemsRef={problemsRef} />
               </div>
             ) : null}
             {view !== 'document' ? (
               <Suspense fallback={<div className="h-[62vh] grid place-items-center text-ink-3"><Spinner label="Loading the XML panel" /></div>}>
-                <div data-readonly={state.readOnly ? 'true' : 'false'}>
-                  <XmlPanel value={xml} onChange={setXml} readOnly={state.readOnly} contentModel={model} markers={markers} revealLine={revealLine} />
+                <div data-readonly={readOnly ? 'true' : 'false'}>
+                  <XmlPanel value={xml} onChange={setXml} readOnly={readOnly} contentModel={model} markers={markers} revealLine={revealLine} />
                 </div>
               </Suspense>
             ) : null}
@@ -314,8 +327,8 @@ export default function DmEditor() {
         <div className="space-y-6">
           {view !== 'xml' ? (
             <Card>
-              <CardHeader title="Element" subtitle={state.readOnly ? 'Read-only' : 'Attributes and what the schema allows here'} />
-              <Inspector xml={xml} onChange={structuredChange} readOnly={state.readOnly} model={model} selected={selected} onSelect={setSelected} problems={problems} />
+              <CardHeader title="Element" subtitle={readOnly ? 'Read-only' : 'Attributes and what the schema allows here'} />
+              <Inspector xml={xml} onChange={structuredChange} readOnly={readOnly} model={model} selected={selected} onSelect={setSelected} problems={problems} />
             </Card>
           ) : null}
           {previewLog || preview ? (
@@ -376,7 +389,7 @@ export default function DmEditor() {
 
       <Dialog open={!!viewRev} onClose={() => setViewRev(null)} size="lg" title={viewRev ? `Revision #${viewRev.revision.id}` : ''}
         description={viewRev ? `${viewRev.revision.reason}, ${fmtDateTime(viewRev.revision.createdAt)}${viewRev.revision.by ? ` by ${viewRev.revision.by}` : ''}` : ''}
-        footer={!state.readOnly ? <Button variant="primary" onClick={() => { setXml(viewRev.xml); setViewRev(null); setRevisions(null); toast.info('Revision loaded into the editor', 'Save to make it the current version.'); }}>Load into editor</Button> : null}>
+        footer={!readOnly ? <Button variant="primary" onClick={() => { setXml(viewRev.xml); setViewRev(null); setRevisions(null); toast.info('Revision loaded into the editor', 'Save to make it the current version.'); }}>Load into editor</Button> : null}>
         {viewRev ? <pre className="max-h-[55vh] overflow-auto rounded-md border border-line bg-surface-2 p-3 font-mono text-[12px] text-ink whitespace-pre">{viewRev.xml}</pre> : null}
       </Dialog>
     </>

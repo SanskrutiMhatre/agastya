@@ -14,6 +14,7 @@ import { del, fetchBlob, get, post } from '../../api.js';
 import { fmtRelative } from '../../lib/format.js';
 import { snsOf } from '../../lib/dmc.js';
 import NewDmDialog from './NewDmDialog.jsx';
+import { useOverrideSession } from '../../components/OverrideSession.jsx';
 import { LockBanner, LockedBadge } from '../../components/LockBanner.jsx';
 import ImportDialog from './ImportDialog.jsx';
 import DmrlDialog from './DmrlDialog.jsx';
@@ -57,8 +58,11 @@ function SnsTree({ modules, selected, onSelect, names }) {
 
 const STATUS_TONE = { draft: 'neutral', in_review: 'warn', approved: 'ok' };
 
-export default function DataModulesTab({ project, canWrite }) {
+export default function DataModulesTab({ project, canWrite: mayWrite, override = false }) {
   const toast = useToast();
+  // The administrator creates, imports, deletes and restores modules only as an override (decisions.md V3).
+  const ov = useOverrideSession({ projectId: project.id, docKey: 'modules', label: 'the data module list', enabled: override });
+  const canWrite = mayWrite || ov.active;
   const [showDeleted, setShowDeleted] = useState(false);
   const { data, loading, error, reload } = useResource(`/api/projects/${project.id}/dms${showDeleted ? '?deleted=1' : ''}`);
   const { data: refData } = useResource('/api/reference-data');
@@ -108,7 +112,8 @@ export default function DataModulesTab({ project, canWrite }) {
   if (error) return <Card><ErrorState error={error} onRetry={reload} /></Card>;
   return (
     <Card className="overflow-hidden">
-      {data && data.lock ? <LockBanner lock={data.lock} what={`The ${data.modules.filter((x) => x.locked).length} modules marked Locked are part of a submitted publication. Each`} className="m-4 mb-0" /> : null}
+      {ov.bar ? <div className="m-4 mb-0">{ov.bar}</div> : null}
+      {data && data.lock ? <LockBanner lock={data.lock} override={ov.active} what={`The ${data.modules.filter((x) => x.locked).length} modules marked Locked are part of a submitted publication. Each`} className="m-4 mb-0" /> : null}
       <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-line">
         <div className="w-full sm:w-72">
           <SearchInput value={search} label="Search data modules" placeholder={field === 'content' ? 'Search inside the XML (press Enter)' : 'Search code or title'}
@@ -164,7 +169,7 @@ export default function DataModulesTab({ project, canWrite }) {
                 { key: 'updated', header: 'Updated', sortValue: (m) => m.updatedAt, render: (m) => <span className="text-ink-2" title={m.updatedBy || ''}>{fmtRelative(m.updatedAt)}</span>, hideBelow: 'md' },
                 ...(canWrite ? [{ key: 'act', header: <span className="sr-only">Actions</span>, align: 'right', render: (m) => (m.deletedAt
                   ? <Button size="sm" variant="ghost" icon="refresh" onClick={() => setConfirm({ kind: 'restore', m })}>Restore</Button>
-                  : m.locked ? <span className="text-[12px] text-ink-3">Read-only</span>
+                  : m.locked && !ov.active ? <span className="text-[12px] text-ink-3">Read-only</span>
                     : <Button size="sm" variant="danger-ghost" onClick={() => setConfirm({ kind: 'delete', m })} aria-label={`Delete ${m.dmc}`}>Delete</Button>) }] : []),
               ]}
             />

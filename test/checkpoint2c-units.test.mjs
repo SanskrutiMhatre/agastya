@@ -28,9 +28,14 @@ test('the committed content models are up to date with the bundled XSDs', () => 
   for (const k of ['4.1/descript', '4.2/descript', '4.2/proced', '4.2/ipd', '5.0/descript', '6.0/descript', '4.2/pm', '4.2/brex']) assert.ok(keys.includes(k), k);
 });
 
-test('the compiled 4.2 descriptive model matches the Agastya original exactly', () => {
+// docs/reference is read-only reference material kept locally and not in the repository (.gitignore).
+const ORIGINAL_MODELS = 'docs/reference/agastya sourcecode/Agastya_V.01/frontend/src/data/content-models.json';
+const haveOriginal = fs.existsSync(path.join(ROOT, ORIGINAL_MODELS));
+if (!haveOriginal) console.log(`# notice: ${ORIGINAL_MODELS} is not on this machine; the comparison with the Agastya original is skipped`);
+
+test('the compiled 4.2 descriptive model matches the Agastya original exactly', { skip: haveOriginal ? false : 'docs/reference is not on this machine' }, () => {
   const ours = JSON.parse(read('client/src/data/content-models.json'));
-  const orig = JSON.parse(read('docs/reference/agastya sourcecode/Agastya_V.01/frontend/src/data/content-models.json'));
+  const orig = JSON.parse(read(ORIGINAL_MODELS));
   for (const key of ['4.2/descript', '4.2/proced']) {
     const a = ours.models[key], b = orig.models[key];
     assert.deepEqual(Object.keys(a).sort(), Object.keys(b).sort(), key);

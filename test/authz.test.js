@@ -101,8 +101,15 @@ test('project visibility: owner, assigned Authors and the administrator; everyon
 test('assignment (R12): the owner (Project Manager or Author) or the administrator; nobody else', () => {
   assert.equal(code(evaluate(pm, 'project.assign', { project: pmProject })), 'ALLOW');
   assert.equal(code(evaluate(pm2, 'project.assign', { project: pmProject })), '404 NOT_FOUND');
-  assert.equal(code(evaluate(admin, 'project.assign', { project: pmProject })), 'ALLOW');
-  assert.equal(code(evaluate(admin, 'project.assign', { project: authorProject })), 'ALLOW');
+  // The administrator's assignment is an override with a written reason (V7).
+  const why = 'Owner on leave; covering the deadline.';
+  assert.equal(code(evaluate(admin, 'project.assign', { project: pmProject, reason: why })), 'ALLOW');
+  assert.equal(code(evaluate(admin, 'project.assign', { project: authorProject, reason: why })), 'ALLOW');
+  assert.equal(code(evaluate(admin, 'project.assign', { project: pmProject })), '400 OVERRIDE_REASON_REQUIRED');
+  assert.equal(code(evaluate(admin, 'project.assign', { project: pmProject, reason: '   short   ' })), '400 OVERRIDE_REASON_REQUIRED');
+  assert.equal(code(evaluate(admin, 'project.assign', { project: pmProject, reason: 'x'.repeat(1001) })), '400 OVERRIDE_REASON_REQUIRED');
+  assert.equal(code(evaluate(pm, 'project.assign', { project: pmProject, reason: why })), '400 OVERRIDE_NOT_ALLOWED', 'only the administrator overrides');
+  assert.equal(code(evaluate(admin, 'project.assign.list', { project: pmProject })), 'ALLOW', 'listing candidates needs no reason');
   assert.equal(code(evaluate(author, 'project.assign', { project: authorProject })), 'ALLOW', 'the owning Author manages members');
   assert.equal(code(evaluate({ id: 'au2', role: 'author' }, 'project.assign', { project: authorProject, membership: {} })), '403 FORBIDDEN', 'an assigned Author cannot');
   assert.equal(code(evaluate(author, 'project.assign', { project: pmProject, membership: {} })), '403 FORBIDDEN');
@@ -121,7 +128,51 @@ test('approval requests: the chosen manager sees and decides that request only',
   assert.equal(code(evaluate(author, 'request.decide', { request })), '403 FORBIDDEN');
   assert.equal(code(evaluate({ id: 'x', role: 'author' }, 'request.read', { request })), '404 NOT_FOUND');
   assert.equal(code(evaluate(admin, 'request.read', { request })), 'ALLOW');
-  assert.equal(code(evaluate(admin, 'request.decide', { request })), '403 OVERRIDE_REQUIRED', 'admin decisions are Phase 4 overrides');
+  assert.equal(code(evaluate(admin, 'request.decide', { request })), '403 OVERRIDE_REQUIRED', 'the administrator decides only as an override');
+});
+
+test('request overrides (V4-V6): the administrator only, with a reason, on a pending request', () => {
+  const request = { id: 'r1', project_id: 'p2', submitted_by: 'au', assigned_manager_id: 'pm2', status: 'pending' };
+  const reason = 'Manager unavailable for two weeks.';
+  assert.equal(code(evaluate(admin, 'request.override', { request, reason })), 'ALLOW');
+  assert.equal(code(evaluate(admin, 'request.override', { request })), '400 OVERRIDE_REASON_REQUIRED');
+  assert.equal(code(evaluate(admin, 'request.override', { request, reason: 'too short' })), '400 OVERRIDE_REASON_REQUIRED');
+  assert.equal(code(evaluate(admin, 'request.override', { request: { ...request, status: 'approved' }, reason })), '409 NOT_PENDING');
+  assert.equal(code(evaluate(admin, 'request.override', { request: null, reason })), '404 NOT_FOUND');
+  for (const u of [pm2, pm, author]) assert.equal(code(evaluate(u, 'request.override', { request, reason })), '403 FORBIDDEN', u.id);
+});
+
+test('content overrides (V3): the administrator writes only inside a live override session', () => {
+  assert.equal(code(evaluate(admin, 'content.write', { project: pmProject })), '403 OVERRIDE_REQUIRED');
+  assert.equal(code(evaluate(admin, 'content.write', { project: pmProject, override: { ok: true } })), 'ALLOW');
+  assert.equal(code(evaluate(admin, 'content.write', { project: pmProject, override: { ok: false, code: 'OVERRIDE_SESSION_ENDED' } })), '403 OVERRIDE_SESSION_ENDED');
+  assert.equal(code(evaluate(admin, 'content.write', { project: null, override: { ok: true } })), '404 NOT_FOUND');
+  assert.equal(code(evaluate(author, 'content.write', { project: authorProject, overrideHeader: true })), '400 OVERRIDE_NOT_ALLOWED');
+  assert.equal(code(evaluate(pm, 'content.write', { project: pmProject, override: { ok: true } })), '403 FORBIDDEN', 'a manager never writes');
+  const reason = 'Fixing a broken reference for the release.';
+  assert.equal(code(evaluate(admin, 'content.override.start', { project: pmProject, reason })), 'ALLOW');
+  assert.equal(code(evaluate(admin, 'content.override.start', { project: pmProject })), '400 OVERRIDE_REASON_REQUIRED');
+  assert.equal(code(evaluate(author, 'content.override.start', { project: authorProject, reason })), '403 FORBIDDEN');
+  assert.equal(code(evaluate(admin, 'override.session.end', { session: { admin_id: 'a' } })), 'ALLOW');
+  assert.equal(code(evaluate(admin, 'override.session.end', { session: null })), '404 NOT_FOUND');
+});
+
+test('drafts and the approver list have their own rules: Authors who write the project only', () => {
+  assert.equal(code(evaluate(author, 'draft.write', { project: authorProject })), 'ALLOW');
+  assert.equal(code(evaluate(admin, 'draft.write', { project: authorProject })), '403 FORBIDDEN', 'the administrator keeps no drafts');
+  assert.equal(code(evaluate(pm, 'draft.write', { project: pmProject })), '403 FORBIDDEN');
+  assert.equal(code(evaluate(pm2, 'draft.write', { project: pmProject })), '404 NOT_FOUND');
+  assert.equal(code(evaluate(author, 'request.approvers', { project: authorProject })), 'ALLOW');
+  assert.equal(code(evaluate(admin, 'request.approvers', { project: authorProject })), '403 FORBIDDEN', 'the administrator cannot submit');
+  assert.equal(code(evaluate(pm, 'request.approvers', { project: pmProject })), '403 FORBIDDEN');
+  assert.equal(code(evaluate(pm, 'request.approvers', { project: authorProject })), '404 NOT_FOUND');
+});
+
+test('the administrator screens are the administrator\'s alone', () => {
+  for (const action of ['admin.oversight', 'admin.audit', 'admin.health', 'admin.sessions']) {
+    assert.equal(code(evaluate(admin, action)), 'ALLOW', action);
+    for (const u of [pm, author]) assert.equal(code(evaluate(u, action)), '403 FORBIDDEN', `${u.id} ${action}`);
+  }
 });
 
 test('submitting: an owner or assigned Author, to an active Project Manager', () => {

@@ -42,7 +42,8 @@ function register({ app, store, sessions, authz, audit, limiter, now, clientIp, 
       const user = store.findUserByUsername(username);
       if (!user) {
         await dummyVerify(password); // same work, same answer as a wrong password
-        audit({ action: 'auth.login.failed', ip, meta: { username: username.slice(0, 64), reason: 'unknown-user' } });
+        // The typed name is not kept: it may be a password typed into the wrong box (decisions.md V9).
+        audit({ action: 'auth.login.failed', ip, meta: { reason: 'unknown-user' } });
         return res.status(401).json(LOGIN_FAIL);
       }
       if (!(await verifyPassword(user.password_hash, password))) {

@@ -338,6 +338,55 @@ const MIGRATIONS = [
       ALTER TABLE publication_requests ADD COLUMN previous_request_id TEXT REFERENCES publication_requests(id);
     `,
   },
+  {
+    /*
+      Phase 4: the Software Administrator's overrides (decisions.md V1-V12).
+      admin_overrides is the permanent record of each one, with its written
+      reason; like the audit log it is append-only. override_sessions are
+      the administrator's content-editing sessions: one reason per session,
+      ended after 30 minutes idle or when the administrator leaves.
+    */
+    name: '013-admin-overrides',
+    sql: `
+      CREATE TABLE IF NOT EXISTS admin_overrides (
+        id          TEXT PRIMARY KEY,
+        at          TEXT NOT NULL,
+        admin_id    TEXT NOT NULL REFERENCES users(id),
+        kind        TEXT NOT NULL CHECK (kind IN ('decision','reset','reassign','content','members')),
+        action      TEXT NOT NULL,
+        project_id  TEXT REFERENCES projects(id),
+        request_id  TEXT REFERENCES publication_requests(id),
+        target_type TEXT,
+        target_id   TEXT,
+        session_id  TEXT,
+        reason      TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS ix_overrides_project ON admin_overrides(project_id, at);
+      CREATE INDEX IF NOT EXISTS ix_overrides_request ON admin_overrides(request_id);
+      CREATE TRIGGER IF NOT EXISTS admin_overrides_no_update BEFORE UPDATE ON admin_overrides
+        BEGIN SELECT RAISE(ABORT, 'admin_overrides is append-only'); END;
+      CREATE TRIGGER IF NOT EXISTS admin_overrides_no_delete BEFORE DELETE ON admin_overrides
+        BEGIN SELECT RAISE(ABORT, 'admin_overrides is append-only'); END;
+
+      CREATE TABLE IF NOT EXISTS override_sessions (
+        id              TEXT PRIMARY KEY,
+        admin_id        TEXT NOT NULL REFERENCES users(id),
+        auth_session_id TEXT NOT NULL REFERENCES sessions(id),
+        project_id      TEXT NOT NULL REFERENCES projects(id),
+        doc_key         TEXT NOT NULL,
+        reason          TEXT NOT NULL,
+        started_at      TEXT NOT NULL,
+        last_used_at    TEXT NOT NULL,
+        saves           INTEGER NOT NULL DEFAULT 0,
+        ended_at        TEXT,
+        end_reason      TEXT
+      );
+      CREATE INDEX IF NOT EXISTS ix_override_sessions_open ON override_sessions(admin_id, ended_at);
+      -- The reason a session was opened with never changes.
+      CREATE TRIGGER IF NOT EXISTS override_sessions_reason_fixed BEFORE UPDATE OF reason, project_id, doc_key, admin_id ON override_sessions
+        BEGIN SELECT RAISE(ABORT, 'an override session keeps its reason and scope'); END;
+    `,
+  },
 ];
 
 module.exports = { MIGRATIONS };

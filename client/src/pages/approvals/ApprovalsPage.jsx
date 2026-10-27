@@ -11,8 +11,8 @@ import { RequestBadge } from '../projects/ApprovalCard.jsx';
 
 /*
   The approvals queue (decisions.md M1): a Project Manager's requests,
-  pending first; the administrator sees every request (oversight, Phase 4
-  brings their override).
+  pending first; the administrator sees every request and overrides from
+  the review screen (decisions.md V4-V6).
 */
 export default function ApprovalsPage() {
   const { me } = useAuth();
@@ -24,7 +24,7 @@ export default function ApprovalsPage() {
   return (
     <>
       <PageHeader eyebrow={isAdmin ? 'Oversight' : 'Review'} title="Approvals"
-        subtitle={isAdmin ? 'Every publication request. Decisions by the administrator are an override with a written reason (Phase 4).' : 'Publications Authors have sent to you. Open one to review its frozen snapshot and decide.'} />
+        subtitle={isAdmin ? 'Every publication request. Open one to decide, reset or reassign it as an administrator override, with a written reason.' : 'Publications Authors have sent to you. Open one to review its frozen snapshot and decide.'} />
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-line">
           <div className="w-48">

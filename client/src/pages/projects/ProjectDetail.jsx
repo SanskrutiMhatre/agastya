@@ -6,7 +6,8 @@ import DataTable from '../../components/ui/DataTable.jsx';
 import { Field, Select } from '../../components/ui/Field.jsx';
 import { Avatar, Badge, Mono, OwnerTag, StatusBadge } from '../../components/ui/Badge.jsx';
 import { ConfirmDialog, Dialog } from '../../components/ui/Dialog.jsx';
-import { Alert, EmptyState, ErrorState, LoadingBlock, PhasePlaceholder } from '../../components/ui/States.jsx';
+import { Alert, EmptyState, ErrorState, LoadingBlock } from '../../components/ui/States.jsx';
+import OverrideDialog from '../../components/OverrideDialog.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import Icon from '../../components/Icon.jsx';
 import useResource from '../../lib/useResource.js';
@@ -17,7 +18,8 @@ import PublicationTab from './PublicationTab.jsx';
 import { del, get, post } from '../../api.js';
 import { describeAction, fmtDate, fmtRelative } from '../../lib/format.js';
 
-function AssignDialog({ open, onClose, projectId, onAssigned }) {
+// The administrator assigns as an override: the reason is asked in OverrideDialog (decisions.md V7).
+function AssignDialog({ open, onClose, projectId, onAssigned, asAdmin = false }) {
   const [authors, setAuthors] = useState(null);
   const [choice, setChoice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -36,6 +38,37 @@ function AssignDialog({ open, onClose, projectId, onAssigned }) {
       const r = await post(`/api/projects/${projectId}/members`, { userId: choice });
       onAssigned(r.authors, authors.find((a) => a.id === choice));
     } catch (err) { setError(err.message); } finally { setBusy(false); }
+  }
+
+  const picker = (
+    <>
+      {error ? <Alert>{error}</Alert> : null}
+      {authors == null && !error ? <LoadingBlock rows={1} /> : null}
+      {authors && !authors.length ? <Alert tone="info">Every active Author is already on this project. Create an Author account first.</Alert> : null}
+      {authors && authors.length ? (
+        <Field label="Author" required>
+          {(p) => (
+            <Select {...p} value={choice} onChange={(e) => setChoice(e.target.value)} autoFocus>
+              <option value="">Select an Author…</option>
+              {authors.map((a) => <option key={a.id} value={a.id}>{a.fullName} ({a.username}){a.status === 'pending' ? ' · setup pending' : ''}</option>)}
+            </Select>
+          )}
+        </Field>
+      ) : null}
+    </>
+  );
+  if (asAdmin) {
+    return (
+      <OverrideDialog open={open} onClose={onClose} title="Assign an Author (override)" confirmLabel="Assign" valid={!!choice}
+        description="The Author gains access to this project only." people="the Author and the project's owner"
+        onSubmit={async (reason) => {
+          if (!choice) throw new Error('Choose an Author.');
+          const r = await post(`/api/projects/${projectId}/members`, { userId: choice, reason });
+          onAssigned(r.authors, authors.find((a) => a.id === choice));
+        }}>
+        {picker}
+      </OverrideDialog>
+    );
   }
 
   return (
@@ -80,7 +113,9 @@ export default function ProjectDetail() {
   if (loading) return <>{back}<Card className="p-6"><LoadingBlock rows={6} /></Card></>;
 
   const p = data.project;
-  const canAssign = data.permissions.assign;
+  const asAdmin = data.relation === 'oversight';
+  // The administrator's assign check needs a reason, so it reads "not allowed" here; they assign as an override.
+  const canAssign = data.permissions.assign || asAdmin;
 
   return (
     <>
@@ -91,9 +126,9 @@ export default function ProjectDetail() {
       <Tabs idBase="project" value={tab} onChange={(v) => setParams(v === 'overview' ? {} : { tab: v })}
         tabs={[{ value: 'overview', label: 'Overview' }, { value: 'dms', label: 'Data modules' }, { value: 'graphics', label: 'Graphics' }, { value: 'publication', label: 'Publication & PDF' }]} />
 
-      <TabPanel idBase="project" value="dms" active={tab}><DataModulesTab project={p} canWrite={data.permissions.write} /></TabPanel>
-      <TabPanel idBase="project" value="graphics" active={tab}><GraphicsTab project={p} canWrite={data.permissions.write} /></TabPanel>
-      <TabPanel idBase="project" value="publication" active={tab}><PublicationTab project={p} canWrite={data.permissions.write} canBuild={data.permissions.build} /></TabPanel>
+      <TabPanel idBase="project" value="dms" active={tab}><DataModulesTab project={p} canWrite={data.permissions.write} override={data.permissions.override} /></TabPanel>
+      <TabPanel idBase="project" value="graphics" active={tab}><GraphicsTab project={p} canWrite={data.permissions.write} override={data.permissions.override} /></TabPanel>
+      <TabPanel idBase="project" value="publication" active={tab}><PublicationTab project={p} canWrite={data.permissions.write} canBuild={data.permissions.build} override={data.permissions.override} drafts={data.permissions.drafts} /></TabPanel>
 
       <TabPanel idBase="project" value="overview" active={tab}>
       <div className="grid gap-6 lg:grid-cols-3">
@@ -127,7 +162,9 @@ export default function ProjectDetail() {
             />
           </Card>
           {!data.permissions.write ? (
-            <Alert tone="info">{data.relation === 'oversight' ? 'You are viewing this project as the administrator: read-only. Content edits with a written reason arrive in Phase 4.' : "You can read this project's content; the Authors who own or are assigned to it edit it."}</Alert>
+            <Alert tone="info">{asAdmin
+              ? 'You are viewing this project as the administrator. To change content, open a data module, the module list, the graphics or the publication and choose Edit as administrator: each editing session needs a written reason, and every save is recorded and told to the people involved.'
+              : "You can read this project's content; the Authors who own or are assigned to it edit it."}</Alert>
           ) : null}
         </div>
         <div className="space-y-6">
@@ -144,22 +181,33 @@ export default function ProjectDetail() {
               ]} />
             </div>
           </Card>
-          <PhasePlaceholder compact phase="2b" title="Approval requests">Submitting a publication for approval arrives in checkpoint 2b.</PhasePlaceholder>
         </div>
       </div>
       </TabPanel>
 
-      <AssignDialog open={assigning} onClose={() => setAssigning(false)} projectId={p.id}
+      <AssignDialog open={assigning} onClose={() => setAssigning(false)} projectId={p.id} asAdmin={asAdmin}
         onAssigned={(authors, who) => { setAssigning(false); setData({ ...data, authors }); toast.success('Author assigned', who ? who.fullName : undefined); }} />
-      <ConfirmDialog open={!!removing} onClose={() => setRemoving(null)} title="Remove Author from project?" confirmLabel="Remove" tone="danger"
-        onConfirm={async () => {
-          const r = await del(`/api/projects/${p.id}/members/${removing.id}`);
-          setData({ ...data, authors: r.authors });
-          toast.success('Author removed', removing.fullName);
-          setRemoving(null);
-        }}>
-        {removing ? <p><strong className="text-ink">{removing.fullName}</strong> will lose access to {p.name}. Their account is not affected.</p> : null}
-      </ConfirmDialog>
+      {asAdmin ? (
+        <OverrideDialog open={!!removing} onClose={() => setRemoving(null)} title="Remove Author from project (override)" confirmLabel="Remove" tone="danger"
+          people="the Author and the project's owner"
+          description={removing ? `${removing.fullName} will lose access to ${p.name}. Their account is not affected.` : ''}
+          onSubmit={async (reason) => {
+            const r = await del(`/api/projects/${p.id}/members/${removing.id}`, { reason });
+            setData({ ...data, authors: r.authors });
+            toast.success('Author removed', removing.fullName);
+            setRemoving(null);
+          }} />
+      ) : (
+        <ConfirmDialog open={!!removing} onClose={() => setRemoving(null)} title="Remove Author from project?" confirmLabel="Remove" tone="danger"
+          onConfirm={async () => {
+            const r = await del(`/api/projects/${p.id}/members/${removing.id}`);
+            setData({ ...data, authors: r.authors });
+            toast.success('Author removed', removing.fullName);
+            setRemoving(null);
+          }}>
+          {removing ? <p><strong className="text-ink">{removing.fullName}</strong> will lose access to {p.name}. Their account is not affected.</p> : null}
+        </ConfirmDialog>
+      )}
     </>
   );
 }

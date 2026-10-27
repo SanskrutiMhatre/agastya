@@ -83,7 +83,7 @@ function Row({ entry, path, depth, expanded, onToggle, selected, onSelect, drag,
   );
 }
 
-export default function PmcBuilder({ project, canWrite, onSaved }) {
+export default function PmcBuilder({ project, canWrite, onSaved, overriding = false, drafts = true }) {
   const toast = useToast();
   const [model, setModel] = useState(null);
   const [entries, setEntries] = useState([]);
@@ -112,14 +112,14 @@ export default function PmcBuilder({ project, canWrite, onSaved }) {
       const m = await get(`/api/projects/${project.id}/publication/model`);
       setModel(m); setEntries(m.entries); setDirty(false); setUndoSnap(null); setNewer(null);
       setExpanded(new Set(m.entries.map((_, i) => String(i))));
-      if (canWrite) {
+      if (canWrite && drafts) {
         try {
           const d = (await get(`/api/projects/${project.id}/drafts/${DRAFT_KEY}`)).draft;
           if (d && d.content !== JSON.stringify(m.entries)) setDraft(d); else setDraft(null);
         } catch { setDraft(null); }
       }
     } catch (e) { setError(e); }
-  }, [project.id, canWrite]);
+  }, [project.id, canWrite, drafts]);
   useEffect(() => { load(); }, [load]);
 
   // Another person's save makes this view out of date; say so rather than overwrite it later.
@@ -132,7 +132,7 @@ export default function PmcBuilder({ project, canWrite, onSaved }) {
 
   // Autosave the unsaved tree as the user's draft (a few seconds after the last change).
   useEffect(() => {
-    if (!canWrite || !dirty || !model) return undefined;
+    if (!canWrite || !drafts || !dirty || !model) return undefined;
     clearTimeout(draftTimer.current);
     draftTimer.current = setTimeout(() => {
       put(`/api/projects/${project.id}/drafts/${DRAFT_KEY}`, { content: JSON.stringify(entries), baseRevision: model.revision })
@@ -140,7 +140,7 @@ export default function PmcBuilder({ project, canWrite, onSaved }) {
         .catch(() => { /* a failed autosave is retried on the next change */ });
     }, 2000);
     return () => clearTimeout(draftTimer.current);
-  }, [entries, dirty, canWrite, model, project.id]);
+  }, [entries, dirty, canWrite, drafts, model, project.id]);
 
   const counts = useMemo(() => countOf(entries), [entries]);
   const missing = useMemo(() => new Set(model ? model.missing : []), [model]);
@@ -191,8 +191,12 @@ export default function PmcBuilder({ project, canWrite, onSaved }) {
       if (r.unresolved.length) toast.info('Some entries name modules this project does not have', r.unresolved.map((u) => u.code).slice(0, 3).join(', '));
       onSaved && onSaved();
     } catch (e) {
-      if (e.code === 'CONFLICT') setConflict(e.body.conflict || {});
-      else toast.error('Not saved', e.message);
+      if (e.code === 'CONFLICT') {
+        // Keep the refused tree as the user's draft at once (decisions.md B11).
+        clearTimeout(draftTimer.current);
+        if (drafts) await put(`/api/projects/${project.id}/drafts/${DRAFT_KEY}`, { content: JSON.stringify(entries), baseRevision: model.revision }).catch(() => {});
+        setConflict(e.body.conflict || {});
+      } else toast.error('Not saved', e.message);
     }
     savingRef.current = false;
     setBusy(null);
@@ -228,11 +232,11 @@ export default function PmcBuilder({ project, canWrite, onSaved }) {
 
   if (error) return <Card><ErrorState error={error} onRetry={load} /></Card>;
   if (!model) return <Card className="p-6"><LoadingBlock rows={6} /></Card>;
-  const readOnly = !canWrite || !!model.lock;
+  const readOnly = !canWrite || (!!model.lock && !overriding);
 
   return (
     <div className="space-y-4">
-      <LockBanner lock={model.lock} what="The publication module" />
+      <LockBanner lock={model.lock} override={overriding} what="The publication module" />
       {draft && !readOnly ? (
         <Alert tone="info" title="You have an unsaved draft of this publication">
           Autosaved {fmtRelative(draft.updatedAt)}{draft.baseRevision && draft.baseRevision !== model.revision ? `, from revision ${draft.baseRevision} (the publication has been saved since)` : ''}.

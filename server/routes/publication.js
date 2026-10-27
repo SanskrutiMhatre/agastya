@@ -29,7 +29,9 @@ const PM_REL = 'publication.xml';
 function register(ctx) {
   const { app, store, authz, documents, locks } = ctx;
   const { can } = authz;
-  const { me, dirOf, auditContent, content } = createKit(ctx);
+  const { me, dirOf, auditContent, content, unlockOpts } = createKit(ctx);
+  // The administrator writes under an override session for the publication (decisions.md V3).
+  const writePm = loaders.withOverride(loaders.project, () => 'publication');
 
   const readPm = (req) => {
     const doc = documents.ensureDocument(req.ctx.project, PM_REL, 'pm');
@@ -54,11 +56,11 @@ function register(ctx) {
     }));
 
   app.put('/api/projects/:id/publication/model',
-    can('content.write', loaders.project),
+    can('content.write', writePm),
     query({ allowEmpty: { type: 'string', enum: ['0', '1'] } }),
     body({ entries: { type: 'array', required: true, max: pub.MAX_ENTRIES }, baseRevision: { type: 'integer', required: true, min: 1 } }),
     content(async (req, res) => {
-      locks.assertUnlocked(me(req), req.ctx.project.id, PM_REL);
+      locks.assertUnlocked(me(req), req.ctx.project.id, PM_REL, unlockOpts(req));
       let entries;
       try { entries = pub.validateEntries(req.valid.entries); } catch (e) {
         if (e instanceof pub.EntryError) return sendError(res, 400, 'VALIDATION', e.message);
@@ -89,14 +91,14 @@ function register(ctx) {
     }));
 
   app.post('/api/projects/:id/publication/import',
-    can('content.write', loaders.project),
+    can('content.write', writePm),
     body({ xml: { type: 'password', required: true, max: 8 * 1024 * 1024 }, baseRevision: { type: 'integer', required: true, min: 1 } }),
     content(async (req, res) => {
       const xml = req.valid.xml.replace(/^﻿/, '');
       if (!/<pm[\s>]/.test(xml) || /<dmodule[\s>]/.test(xml)) {
         return sendError(res, 400, 'NOT_A_PUBLICATION_MODULE', 'The file must be an S1000D publication module (<pm>).');
       }
-      locks.assertUnlocked(me(req), req.ctx.project.id, PM_REL);
+      locks.assertUnlocked(me(req), req.ctx.project.id, PM_REL, unlockOpts(req));
       // Checked before anything is written: a refused upload leaves the publication as it was.
       await assertWritableXml(xml);
       const model = parseOr400(xml);

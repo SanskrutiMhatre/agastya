@@ -29,6 +29,12 @@ const ROLE_NOT_ALLOWED = deny(403, 'ROLE_NOT_ALLOWED');
 const NOT_FOUND = deny(404, 'NOT_FOUND');
 
 const isAdmin = (u) => u.role === ADMIN;
+// An override's written reason (decisions.md V2): 10 to 1000 characters after trimming.
+const REASON_MIN = 10;
+const REASON_MAX = 1000;
+const reasonOk = (r) => typeof r === 'string' && r.trim().length >= REASON_MIN && r.trim().length <= REASON_MAX;
+const REASON_REQUIRED = deny(400, 'OVERRIDE_REASON_REQUIRED');
+const NOT_ALLOWED = deny(400, 'OVERRIDE_NOT_ALLOWED');
 const isManager = (u) => u.role === MANAGER;
 const isAuthor = (u) => u.role === AUTHOR;
 
@@ -133,8 +139,17 @@ const RULES = {
     Assign / remove Authors (R12): the project's owner, whether a Project
     Manager or an Author, and the administrator on any project. An assigned
     Author cannot; another Project Manager cannot even see the project.
+    For the administrator it is an override and needs a written reason (V7).
   */
-  'project.assign': (u, { project, membership }) => {
+  'project.assign': (u, ctx) => {
+    const { project, membership } = ctx;
+    if (!project) return NOT_FOUND;
+    if (isAdmin(u)) return reasonOk(ctx.reason) ? ALLOW : REASON_REQUIRED;
+    if (project.owner_id === u.id) return ctx.reason !== undefined ? NOT_ALLOWED : ALLOW;
+    return membership ? FORBIDDEN : NOT_FOUND;
+  },
+  // The Authors who could be assigned (read only): as above, no reason needed.
+  'project.assign.list': (u, { project, membership }) => {
     if (!project) return NOT_FOUND;
     if (isAdmin(u) || project.owner_id === u.id) return ALLOW;
     return membership ? FORBIDDEN : NOT_FOUND;
@@ -148,16 +163,40 @@ const RULES = {
   /*
     Writing project content (decisions.md D2): the Authors who own or are
     assigned to the project. A Project Manager reviews rather than authors,
-    so the owning manager reads but does not write. The administrator's
-    content edits need a written reason and are a Phase 4 override.
+    so the owning manager reads but does not write. The administrator writes
+    only inside an override session opened with a written reason for that
+    document (V3): `ctx.override` is the checked session.
   */
   'content.write': (u, ctx) => {
     const { project, membership } = ctx;
     if (!project) return NOT_FOUND;
-    if (isAdmin(u)) return deny(403, 'OVERRIDE_REQUIRED');
+    if (isAdmin(u)) {
+      if (!ctx.override) return deny(403, 'OVERRIDE_REQUIRED');
+      return ctx.override.ok ? ALLOW : deny(403, ctx.override.code || 'OVERRIDE_SESSION_ENDED');
+    }
     const visible = project.owner_id === u.id || membership;
     if (!visible) return NOT_FOUND;
+    if (ctx.overrideHeader) return NOT_ALLOWED;
     return isAuthor(u) ? ALLOW : FORBIDDEN;
+  },
+
+  // Autosaved drafts (B10): only the Authors who write the project. The administrator keeps none.
+  'draft.write': (u, { project, membership }) => {
+    if (!project) return NOT_FOUND;
+    const visible = isAdmin(u) || project.owner_id === u.id || membership;
+    if (!visible) return NOT_FOUND;
+    return isAuthor(u) ? ALLOW : FORBIDDEN;
+  },
+
+  // Starting an override editing session on a project's document (V3): the administrator, with a reason.
+  'content.override.start': (u, ctx) => {
+    if (!isAdmin(u)) return FORBIDDEN;
+    if (!ctx.project) return NOT_FOUND;
+    return reasonOk(ctx.reason) ? ALLOW : REASON_REQUIRED;
+  },
+  'override.session.end': (u, { session }) => {
+    if (!isAdmin(u)) return FORBIDDEN;
+    return session && session.admin_id === u.id ? ALLOW : NOT_FOUND;
   },
 
   /*
@@ -174,7 +213,7 @@ const RULES = {
   },
 
   // Deciding is the chosen Project Manager's. The administrator's override,
-  // with a written reason, is Phase 4 and is a separate action.
+  // with a written reason, is a separate action (request.override).
   'request.decide': (u, { request }) => {
     if (!request) return NOT_FOUND;
     if (isAdmin(u)) return deny(403, 'OVERRIDE_REQUIRED');
@@ -192,6 +231,24 @@ const RULES = {
     return ALLOW;
   },
 
+  /*
+    The administrator's overrides on a request (V4-V6): decide, reset or
+    reassign. Always a written reason; only while the request is pending.
+  */
+  'request.override': (u, ctx) => {
+    if (!isAdmin(u)) return FORBIDDEN;
+    if (!ctx.request) return NOT_FOUND;
+    if (!reasonOk(ctx.reason)) return REASON_REQUIRED;
+    return ctx.request.status === 'pending' ? ALLOW : deny(409, 'NOT_PENDING');
+  },
+
+  // The Project Managers an Author may send a request to: Authors who can submit only.
+  'request.approvers': (u, { project, membership }) => {
+    if (!project) return NOT_FOUND;
+    if (isAuthor(u)) return project.owner_id === u.id || membership ? ALLOW : NOT_FOUND;
+    return RULES['project.read'](u, { project, membership }).ok ? FORBIDDEN : NOT_FOUND;
+  },
+
   // The approvals queue: a Project Manager's own requests; the administrator sees all (oversight).
   'request.queue': (u) => (isAdmin(u) || isManager(u) ? ALLOW : FORBIDDEN),
 
@@ -204,6 +261,11 @@ const RULES = {
   },
 
   'dashboard.admin': (u) => (isAdmin(u) ? ALLOW : FORBIDDEN),
+  // The administrator's screens (Phase 4): oversight, audit log, system health, sessions.
+  'admin.oversight': (u) => (isAdmin(u) ? ALLOW : FORBIDDEN),
+  'admin.audit': (u) => (isAdmin(u) ? ALLOW : FORBIDDEN),
+  'admin.health': (u) => (isAdmin(u) ? ALLOW : FORBIDDEN),
+  'admin.sessions': (u) => (isAdmin(u) ? ALLOW : FORBIDDEN),
   'dashboard.manager': (u) => (isManager(u) ? ALLOW : FORBIDDEN),
   'dashboard.author': (u) => (isAuthor(u) ? ALLOW : FORBIDDEN),
 };
@@ -239,9 +301,12 @@ const MESSAGES = {
   FORBIDDEN: 'You do not have permission to do that.',
   ROLE_NOT_ALLOWED: 'You cannot grant or change that role.',
   SELF_NOT_ALLOWED: 'You cannot do that to your own account.',
-  OVERRIDE_REQUIRED: 'An administrator decision is an override and needs a written reason.',
+  OVERRIDE_REQUIRED: 'This is an administrator override: start editing as administrator with a written reason first.',
+  OVERRIDE_REASON_REQUIRED: `An administrator override needs a written reason of ${REASON_MIN} to ${REASON_MAX} characters.`,
+  OVERRIDE_SESSION_ENDED: 'Your administrator editing session has ended (30 minutes idle, or you left the document). Start again with a new reason.',
+  OVERRIDE_NOT_ALLOWED: 'Only the Software Administrator makes overrides.',
   APPROVER_INVALID: 'Choose an active Project Manager to send the request to.',
-  NOT_PENDING: 'Only a pending request can be withdrawn.',
+  NOT_PENDING: 'Only a pending request can be changed this way.',
   NOT_FOUND: 'Not found.',
 };
 
@@ -289,7 +354,7 @@ function createAuthz({ store, sessions, now = () => new Date() }) {
       const pre = evaluate(user, 'account.self');
       if (!pre.ok) return sendDenial(res, pre);
       let ctx = {};
-      try { ctx = load ? load(req, store, user) || {} : {}; } catch { ctx = {}; }
+      try { ctx = load ? load(req, store, user, now) || {} : {}; } catch { ctx = {}; }
       const v = evaluate(user, action, ctx);
       if (!v.ok) return sendDenial(res, v);
       req.ctx = ctx;
@@ -336,6 +401,41 @@ const loaders = {
   },
   publicationRequest: (req, store) => ({ request: store.getRequest(req.params.reqId) }),
   session: (req, store) => ({ session: store.getSession(req.params.id) }),
+  overrideSession: (req, store) => ({ session: store.getOverrideSession(req.params.sid) }),
 };
 
-module.exports = { createAuthz, evaluate, sendDenial, loaders, RULES, MESSAGES };
+// A loader plus the written reason from the JSON body (`undefined` when none was sent).
+loaders.withReason = (base) => (req, store, user, now) => ({
+  ...(base ? base(req, store, user, now) : {}),
+  reason: req.body && Object.prototype.hasOwnProperty.call(req.body, 'reason') ? req.body.reason : undefined,
+});
+
+/*
+  A content-write loader plus the administrator's override session
+  (decisions.md V3), named by the X-Agastya-Override-Session header. The
+  session must be the caller's, opened from this sign-in, on this project
+  and this document (`keyOf(req)`), not ended, and used within the last 30
+  minutes; an idle session is ended here. X-Agastya-Override-Stale: accept
+  is the administrator's acknowledgement that the save makes a pending
+  request out of date (V5).
+*/
+const OVERRIDE_IDLE_MS = 30 * 60 * 1000;
+loaders.withOverride = (base, keyOf) => (req, store, user, now = () => new Date()) => {
+  const ctx = base(req, store, user, now);
+  const id = req.headers['x-agastya-override-session'];
+  if (id === undefined) return ctx;
+  ctx.overrideHeader = true;
+  if (user.role !== ADMIN) return ctx;
+  const s = typeof id === 'string' ? store.getOverrideSession(id) : null;
+  const at = now();
+  const fail = { ok: false, code: 'OVERRIDE_SESSION_ENDED' };
+  if (!s || s.admin_id !== user.id || !req.auth || s.auth_session_id !== req.auth.session.id || s.ended_at) return { ...ctx, override: fail };
+  if (!ctx.project || s.project_id !== ctx.project.id || s.doc_key !== keyOf(req)) return { ...ctx, override: fail };
+  if (at.getTime() - Date.parse(s.last_used_at) > OVERRIDE_IDLE_MS) {
+    store.endOverrideSession(s.id, 'idle', at.toISOString());
+    return { ...ctx, override: fail };
+  }
+  return { ...ctx, override: { ok: true, session: s, acceptStale: req.headers['x-agastya-override-stale'] === 'accept' } };
+};
+
+module.exports = { createAuthz, evaluate, sendDenial, loaders, RULES, MESSAGES, reasonOk, REASON_MIN, REASON_MAX, OVERRIDE_IDLE_MS };

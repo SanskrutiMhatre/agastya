@@ -1,6 +1,6 @@
 # Agastya
 
-S1000D publication authoring and publishing platform. **Phase 1**: authentication, authorization, user management and role dashboards. **Phase 2, checkpoints 2a to 2c**: project workspaces, data modules, validation (XSD and BREX), graphics, DMRL spreadsheets, PDF output, the publication builder, live build progress, autosaved drafts, approval submission with the content lock, the Author dashboard, and the structured schema-aware editor with the Monaco XML panel. **Phase 3**: the Project Manager dashboard: the approvals queue, review of the frozen submission, decisions with comments, the data module status flow, the rework loop, team activity and Author account management (docs\decisions.md, G1 to G10, B1 to B15, L1 to L4, E1 to E8, M1 to M10).
+S1000D publication authoring and publishing platform. **Phase 1**: authentication, authorization, user management and role dashboards. **Phase 2, checkpoints 2a to 2c**: project workspaces, data modules, validation (XSD and BREX), graphics, DMRL spreadsheets, PDF output, the publication builder, live build progress, autosaved drafts, approval submission with the content lock, the Author dashboard, and the structured schema-aware editor with the Monaco XML panel. **Phase 3**: the Project Manager dashboard: the approvals queue, review of the frozen submission, decisions with comments, the data module status flow, the rework loop, team activity and Author account management (docs\decisions.md, G1 to G10, B1 to B15, L1 to L4, E1 to E8, M1 to M10). **Phase 4**: the Software Administrator dashboard: organisation-wide oversight and workload, the session list, the audit log viewer with filters and CSV export, system health, and administrator overrides, each with a written reason, audited and notified (V1 to V13).
 
 These steps are for Windows with **PowerShell**. Run every command from the project folder:
 
@@ -164,11 +164,13 @@ $env:PLAYWRIGHT_BROWSERS_PATH = "0"; npx playwright install chromium
 
 Everything the PDF build needs ships inside the project folder: a Java runtime (`tools\jre`), xsltproc (`tools\libxslt-1.1.28-win32-x86`), Apache FOP (`tools\fop-2.10`), the XSLT pipelines, S1000D schemas and house templates (`vendor\`). Nothing needs to be installed. See `vendor\PROVENANCE.md` for where each part came from. The first PDF build after a restart is slower while FOP warms up.
 
+The bundled Java and xsltproc are Windows builds. On Linux, `npm run doctor` and **System health** report when `tools\jre\bin\java` or the xsltproc path is a link to a system tool instead; PDFs built that way have not been checked against the golden baseline with the bundled tools (decisions.md V12).
+
 ## Roles
 
 | Role | Creates | Can also |
 |---|---|---|
-| Software Administrator (one only) | Project Managers, Authors | See everything; add or remove Authors on any project; disable/enable accounts; reset any password; switch users between Project Manager and Author; end sessions |
+| Software Administrator (one only) | Project Managers, Authors | See everything (oversight, workload, audit log, system health); disable/enable accounts; reset any password; switch users between Project Manager and Author; end sessions. As **overrides with a written reason** (recorded, shown to the people involved and notified): decide, reset or reassign any approval request; edit content in any project (one reason per editing session); add or remove Authors on any project. Cannot submit publications |
 | Project Manager | Authors | Create and own projects; assign Authors to projects they own; reset passwords of, decide reset requests of, and disable or enable the Authors they created; review and decide the approval requests sent to them (approve, reject or request changes, always with a comment) |
 | Author | nobody | Create and own projects; add existing Authors to projects they own; see only projects they own or are assigned to; submit the publication to a Project Manager and resubmit after changes |
 

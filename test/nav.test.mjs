@@ -21,14 +21,21 @@ test('Project Managers see their Authors and approvals, but not the audit log', 
 
 test('the Software Administrator sees administration', () => {
   const p = pathsFor('software_admin');
-  for (const x of ['/', '/users', '/projects', '/approvals', '/audit']) assert.ok(p.includes(x), x);
+  for (const x of ['/', '/users', '/projects', '/approvals', '/audit', '/health']) assert.ok(p.includes(x), x);
   assert.ok(!p.includes('/data-modules'), 'no authoring entry in the admin navigation');
 });
 
-test('later-phase items are labelled with their phase', () => {
+test('the administrator screens are in nobody else\'s navigation', () => {
+  for (const role of ['project_manager', 'author']) {
+    const p = pathsFor(role);
+    assert.ok(!p.includes('/audit') && !p.includes('/health'), role);
+  }
+});
+
+test('no item is labelled as a later phase any more', () => {
   const all = ['software_admin', 'project_manager', 'author'].flatMap((r) => navFor(r).flatMap((s) => s.items));
   const phased = Object.fromEntries(all.filter((i) => i.phase).map((i) => [i.to, i.phase]));
-  assert.deepEqual(phased, { '/audit': 4 }, 'approvals arrived in Phase 3');
+  assert.deepEqual(phased, {}, 'the audit log arrived in Phase 4');
   assert.equal(all.find((i) => i.to === '/approvals').badge, 'approvals');
 });
 

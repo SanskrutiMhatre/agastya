@@ -123,14 +123,15 @@ test('lock and scope: an Author not on the project gets 404, never the lock; man
   assert.equal((await pm.get(`/api/projects/${project.id}/dms`)).status, 404);
 });
 
-test('the administrator is exempt from the lock (their edit is the Phase 4 override)', async () => {
+test('the administrator is exempt from the lock, once they accept that the save makes the request stale (V5)', async () => {
   const dm = await byCode(admin, '520A-D');
   const s = await save(admin, dm);
   assert.equal(s.status, 403);
   assert.equal(s.body.code, 'OVERRIDE_REQUIRED', 'refused as an override, not as locked');
   const locks = createLocks({ store: t.store, dataDir: t.dataDir });
   const adminUser = { id: 'x', role: 'software_admin' };
-  assert.doesNotThrow(() => locks.assertUnlocked(adminUser, project.id, dm.file && `csdb/${dm.file}`));
+  assert.throws(() => locks.assertUnlocked(adminUser, project.id, `csdb/${dm.file}`), (e) => e instanceof LockedError && e.status === 409 && e.code === 'OVERRIDE_MAKES_STALE');
+  assert.doesNotThrow(() => locks.assertUnlocked(adminUser, project.id, `csdb/${dm.file}`, { acceptStale: true }));
   assert.throws(() => locks.assertUnlocked({ id: 'y', role: 'author' }, project.id, `csdb/${dm.file}`), LockedError);
 });
 

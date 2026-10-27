@@ -28,7 +28,7 @@ export function initials(name) {
 // Audit actions in plain language for the activity feed.
 const ACTIONS = {
   'auth.login': () => 'signed in',
-  'auth.login.failed': (m) => (m && m.reason === 'unknown-user' ? `failed sign-in for unknown user ${m.username || ''}`.trim() : 'failed sign-in'),
+  'auth.login.failed': (m) => (m && m.reason === 'unknown-user' ? 'failed sign-in for an unknown username' : 'failed sign-in'),
   'auth.logout': () => 'signed out',
   'auth.password.changed': () => 'changed their password',
   'auth.password.change_failed': () => 'failed a password change',
@@ -62,7 +62,13 @@ const ACTIONS = {
   'request.submitted': (m) => `${m.resubmission ? 'resubmitted' : 'submitted'} ${m.projectName || 'a publication'} for approval`,
   'request.decided': (m) => `${{ approved: 'approved', rejected: 'rejected', changes_requested: 'requested changes to' }[m.outcome] || 'decided'} ${m.projectName || 'a publication'}`,
   'request.withdrawn': (m) => `withdrew the request for ${m.projectName || 'a publication'}`,
-  'request.stale': (m) => `request for ${m.projectName || 'a publication'} went out of date`,
+  'request.stale': (m) => `request for ${m.projectName || 'a publication'} went out of date${m.cause === 'admin.reset' ? ' (reset by the administrator)' : m.cause === 'admin.override' ? ' (administrator edit)' : ''}`,
+  'request.reassigned': (m) => `reassigned the request for ${m.projectName || 'a publication'} from ${m.fromName || '?'} to ${m.toName || '?'}`,
+  'admin.override': (m) => `override (${{ decision: 'decision', reset: 'reset', reassign: 'reassignment', content: 'content edit', members: 'members' }[m.kind] || m.kind})${m.projectName ? ` on ${m.projectName}` : ''}`,
+  'override.session.started': (m) => `started editing ${m.key || 'a document'}${m.projectName ? ` in ${m.projectName}` : ''} as an override`,
+  'audit.exported': (m) => `exported the audit log (${m.rows != null ? m.rows : '?'} rows)`,
+  'dmrl.imported': () => 'imported a DMRL spreadsheet',
+  'settings.wording_changed': () => 'changed the front-matter wording',
 };
 
 export function describeAction(action, meta) {
